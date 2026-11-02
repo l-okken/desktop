@@ -287,7 +287,7 @@ export class AddSSHAccountDialog extends React.Component<
         notes.push(
           `Warning: ${users.join(
             ', '
-          )} can access ${file}. Windows OpenSSH refuses to use this file until those permissions are removed, whereas the SSH that comes with this app doesn't mind.`
+          )} can access ${file}. Windows OpenSSH refuses to use this file until those permissions are removed, unless "Use system OpenSSH" is turned off in File > Options > Advanced.`
         )
       }
     }

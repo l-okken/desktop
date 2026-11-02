@@ -20,7 +20,9 @@ export class ConfigureGit extends React.Component<IConfigureGitProps, {}> {
         <h1 className="welcome-title">Configure Git</h1>
         <p className="welcome-text">
           This is used to identify the commits you create. Anyone will be able
-          to see this information if you publish commits.
+          to see this information if you publish commits. Finish saves this to
+          your global Git configuration. Skip if you set this per repository or
+          use groups, which can be set up in the settings later.
         </p>
 
         <ConfigureGitUser
@@ -31,6 +33,7 @@ export class ConfigureGit extends React.Component<IConfigureGitProps, {}> {
           globalUserEmail={this.props.globalUserEmail}
         >
           <Button onClick={this.cancel}>Cancel</Button>
+          <Button onClick={this.props.done}>Skip</Button>
         </ConfigureGitUser>
       </section>
     )

@@ -149,6 +149,8 @@ export class RepositoryGroups extends React.Component<
             value={this.state.userName}
             onValueChanged={this.onUserNameChanged}
           />
+        </Row>
+        <Row>
           <TextBox
             label="Commit email (optional)"
             value={this.state.userEmail}

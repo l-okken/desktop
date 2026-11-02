@@ -127,7 +127,7 @@ export class Advanced extends React.Component<
     return (
       <div className="advanced-section">
         <Checkbox
-          label="Use system OpenSSH (recommended)"
+          label="Use system OpenSSH"
           value={
             this.props.useWindowsOpenSSH ? CheckboxValue.On : CheckboxValue.Off
           }

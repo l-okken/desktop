@@ -1,5 +1,5 @@
 const WindowsOpenSSHHint = __WIN32__
-  ? ' Turning off "Use Windows OpenSSH" in File > Options > Advanced also avoids this check.'
+  ? ' Turning off "Use system OpenSSH" in File > Options > Advanced also avoids this check.'
   : ''
 
 /**

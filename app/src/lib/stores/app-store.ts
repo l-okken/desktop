@@ -811,10 +811,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (__WIN32__) {
       const useWindowsOpenSSH = getBoolean(UseWindowsOpenSSHKey)
 
-      // If the user never selected whether to use Windows OpenSSH or not, use it
-      // by default if we have to show the welcome flow (i.e. if it's a new install)
+      // Windows OpenSSH refuses config files and keys that others have access
+      // to, which is the case on plenty of machines, whereas the SSH that comes
+      // with Git reads them just fine. Users can still opt in to it.
       if (useWindowsOpenSSH === undefined) {
-        this._setUseWindowsOpenSSH(this.showWelcomeFlow)
+        this._setUseWindowsOpenSSH(false)
       } else {
         this.useWindowsOpenSSH = useWindowsOpenSSH
       }
