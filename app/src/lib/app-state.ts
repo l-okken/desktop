@@ -204,6 +204,12 @@ export interface IAppState {
    */
   readonly sidebarWidth: IConstrainedValue
 
+  /** The width of the sidebar listing the repositories by their group */
+  readonly repositoryPanelWidth: IConstrainedValue
+
+  /** Whether the sidebar listing the repositories is collapsed */
+  readonly isRepositoryPanelCollapsed: boolean
+
   /** The width of the commit summary column in the history view */
   readonly commitSummaryWidth: IConstrainedValue
 

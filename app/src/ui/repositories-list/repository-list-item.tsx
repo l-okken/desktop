@@ -117,7 +117,9 @@ export class RepositoryListItem extends React.Component<
       return (
         nextProps.repository.id !== this.props.repository.id ||
         nextProps.matches !== this.props.matches ||
-        nextProps.accountLabel !== this.props.accountLabel
+        nextProps.accountLabel !== this.props.accountLabel ||
+        nextProps.aheadBehind !== this.props.aheadBehind ||
+        nextProps.changedFilesCount !== this.props.changedFilesCount
       )
     } else {
       return true

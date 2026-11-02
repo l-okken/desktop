@@ -39,6 +39,27 @@ describe('RepositoryListItem', () => {
     resetTestTimers()
   })
 
+  it('updates its status indicators for the same repository', () => {
+    const repository = createRepository()
+    const item = (changedFilesCount: number) => (
+      <RepositoryListItem
+        repository={repository}
+        needsDisambiguation={false}
+        matches={noMatches}
+        aheadBehind={null}
+        changedFilesCount={changedFilesCount}
+      />
+    )
+
+    const view = render(item(0))
+    const indicator = () =>
+      view.container.querySelector('.change-indicator-wrapper')
+    assert.equal(indicator(), null)
+
+    view.rerender(item(1))
+    assert.notEqual(indicator(), null)
+  })
+
   it('renders the repository name and status indicators', () => {
     const repository = createRepository()
     const view = render(

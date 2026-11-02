@@ -43,6 +43,8 @@ interface IRepositoryViewProps {
   readonly dispatcher: Dispatcher
   readonly emoji: Map<string, Emoji>
   readonly sidebarWidth: IConstrainedValue
+  /** The sidebar listing the repositories, shown next to the repository one. */
+  readonly repositoryPanel: JSX.Element
   readonly commitSummaryWidth: IConstrainedValue
   readonly stashedFilesWidth: IConstrainedValue
   readonly issuesStore: IssuesStore
@@ -645,6 +647,8 @@ export class RepositoryView extends React.Component<
   public render() {
     return (
       <UiView id="repository">
+        {!isValidTutorialStep(this.props.currentTutorialStep) &&
+          this.props.repositoryPanel}
         {this.renderSidebar()}
         {this.renderContent()}
         {this.maybeRenderTutorialPanel()}

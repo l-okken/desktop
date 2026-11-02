@@ -1,16 +1,15 @@
 import { Account } from '../../models/account'
-import { getAccountLabelForRepository } from '../../lib/repository-accounts'
 import { IRepositoryGroup } from '../../models/repository-group'
-import { findRepositoryGroup } from '../../lib/repository-groups'
 import * as React from 'react'
 
 import { commitGrammar, RepositoryListItem } from './repository-list-item'
 import {
-  groupRepositories,
+  groupUserRepositories,
   IRepositoryListItem,
   Repositoryish,
   RepositoryListGroup,
   getGroupKey,
+  getGroupLabel,
 } from './group-repositories'
 import { IFilterListGroup } from '../lib/filter-list'
 import { IMatches } from '../../lib/fuzzy-find'
@@ -29,7 +28,6 @@ import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
 import { generateRepositoryListContextMenu } from '../repositories-list/repository-list-item-context-menu'
 import { enableWorktreeSupport } from '../../lib/feature-flag'
 import { SectionFilterList } from '../lib/section-filter-list'
-import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
@@ -142,20 +140,13 @@ export class RepositoriesList extends React.Component<
     ) =>
       repositories === null
         ? []
-        : groupRepositories(
+        : groupUserRepositories(
             repositories,
             localRepositoryStateLookup,
             recentRepositories,
-            repository =>
-              findRepositoryGroup(
-                customGroups,
-                repository.path,
-                sshAliases.get(repository.id)
-              ),
-            ({ gitHubRepository }) =>
-              gitHubRepository !== null
-                ? getAccountLabelForRepository(accounts, gitHubRepository)
-                : null
+            customGroups,
+            sshAliases,
+            accounts
           )
   )
 
@@ -274,25 +265,8 @@ export class RepositoriesList extends React.Component<
     this.props.dispatcher.moveRepositoryToGroup(repository, group)
   }
 
-  private getGroupLabel(group: RepositoryListGroup) {
-    const { kind } = group
-    if (kind === 'custom') {
-      return group.group.name
-    } else if (kind === 'enterprise') {
-      return group.host
-    } else if (kind === 'other') {
-      return 'Other'
-    } else if (kind === 'dotcom') {
-      return group.owner.login
-    } else if (kind === 'recent') {
-      return 'Recent'
-    } else {
-      assertNever(kind, `Unknown repository group kind ${kind}`)
-    }
-  }
-
   private renderGroupHeader = (group: RepositoryListGroup) => {
-    const label = this.getGroupLabel(group)
+    const label = getGroupLabel(group)
 
     return (
       <TooltippedContent
@@ -360,7 +334,7 @@ export class RepositoriesList extends React.Component<
       >
     ) =>
     (group: number) =>
-      this.getGroupLabel(groups[group].identifier)
+      getGroupLabel(groups[group].identifier)
 
   public render() {
     const groups = this.getRepositoryGroups(

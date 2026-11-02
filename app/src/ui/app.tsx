@@ -47,6 +47,7 @@ import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
 import { RepositoriesList } from './repositories-list'
 import { RepositoryView } from './repository'
+import { RepositoryPanel } from './repository-panel/repository-panel'
 import { RenameBranch } from './rename-branch'
 import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
 import { CloningRepositoryView } from './cloning-repository'
@@ -4014,6 +4015,20 @@ export class App extends React.Component<IAppProps, IAppState> {
           dispatcher={this.props.dispatcher}
           emoji={state.emoji}
           sidebarWidth={state.sidebarWidth}
+          repositoryPanel={
+            <RepositoryPanel
+              repositories={state.repositories}
+              selectedRepository={selectedState.repository}
+              accounts={state.accounts}
+              repositoryGroups={state.repositoryGroups}
+              repositorySSHAliases={state.repositorySSHAliases}
+              localRepositoryStateLookup={state.localRepositoryStateLookup}
+              width={state.repositoryPanelWidth}
+              isCollapsed={state.isRepositoryPanelCollapsed}
+              dispatcher={this.props.dispatcher}
+              onSelectionChanged={this.onSelectionChanged}
+            />
+          }
           commitSummaryWidth={state.commitSummaryWidth}
           stashedFilesWidth={state.stashedFilesWidth}
           issuesStore={this.props.issuesStore}

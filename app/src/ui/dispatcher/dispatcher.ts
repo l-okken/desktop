@@ -991,6 +991,21 @@ export class Dispatcher {
     return this.appStore._setSidebarWidth(width)
   }
 
+  /** Set the width of the sidebar listing the repositories by their group. */
+  public setRepositoryPanelWidth(width: number): Promise<void> {
+    return this.appStore._setRepositoryPanelWidth(width)
+  }
+
+  /** Reset the sidebar listing the repositories to its default width. */
+  public resetRepositoryPanelWidth(): Promise<void> {
+    return this.appStore._resetRepositoryPanelWidth()
+  }
+
+  /** Collapse or expand the sidebar listing the repositories. */
+  public setRepositoryPanelCollapsed(isCollapsed: boolean): Promise<void> {
+    return this.appStore._setRepositoryPanelCollapsed(isCollapsed)
+  }
+
   /**
    * Set the width of the Branch toolbar button to the given value.
    * This affects the toolbar button and its dropdown element.

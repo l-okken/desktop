@@ -486,6 +486,10 @@ const RecentRepositoriesLength = 3
 
 const defaultSidebarWidth: number = 250
 const sidebarWidthConfigKey: string = 'sidebar-width'
+const defaultRepositoryPanelWidth: number = 220
+const repositoryPanelWidthConfigKey: string = 'repository-panel-width'
+const repositoryPanelCollapsedKey: string = 'repository-panel-collapsed'
+const collapsedRepositoryPanelWidth: number = 30
 
 const defaultCommitSummaryWidth: number = 250
 const commitSummaryWidthConfigKey: string = 'commit-summary-width'
@@ -668,6 +672,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private appIsFocused: boolean = false
 
   private sidebarWidth = constrain(defaultSidebarWidth)
+  private repositoryPanelWidth = constrain(defaultRepositoryPanelWidth)
+  private isRepositoryPanelCollapsed = false
   private commitSummaryWidth = constrain(defaultCommitSummaryWidth)
   private stashedFilesWidth = constrain(defaultStashedFilesWidth)
   private pullRequestFileListWidth = constrain(defaultPullRequestFileListWidth)
@@ -1314,6 +1320,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       focusCommitMessage: this.focusCommitMessage,
       emoji: this.emoji,
       sidebarWidth: this.sidebarWidth,
+      repositoryPanelWidth: this.repositoryPanelWidth,
+      isRepositoryPanelCollapsed: this.isRepositoryPanelCollapsed,
       branchDropdownWidth: this.branchDropdownWidth,
       worktreeDropdownWidth: this.worktreeDropdownWidth,
       pushPullButtonWidth: this.pushPullButtonWidth,
@@ -2489,6 +2497,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.sidebarWidth = constrain(
       getNumber(sidebarWidthConfigKey, defaultSidebarWidth)
     )
+    this.repositoryPanelWidth = constrain(
+      getNumber(repositoryPanelWidthConfigKey, defaultRepositoryPanelWidth)
+    )
+    this.isRepositoryPanelCollapsed = getBoolean(
+      repositoryPanelCollapsedKey,
+      false
+    )
     this.commitSummaryWidth = constrain(
       getNumber(commitSummaryWidthConfigKey, defaultCommitSummaryWidth)
     )
@@ -2772,12 +2787,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // 220 was determined as the minimum value since it is the smallest width
     // that will still fit the placeholder text in the branch selector textbox
     // of the history tab
-    const maxSidebarWidth =
-      available - Math.max(toolbarButtonsMinWidth, tutorialMinWidth)
-    this.sidebarWidth = constrain(this.sidebarWidth, 220, maxSidebarWidth)
-
-    // Now calculate the width we have left to distribute for the other panes
-    available -= clamp(this.sidebarWidth)
+    const minSidebarWidth = 220
 
     // This is a pretty silly width for a diff but it will fit ~9 chars per line
     // in unified mode after subtracting the width of the unified gutter and ~4
@@ -2785,7 +2795,33 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // but it doesn't break the layout and it allows users to temporarily
     // maximize the width of the file list to see long path names.
     const diffPaneMinWidth = 150
-    const filesMax = available - diffPaneMinWidth
+
+    // The repository panel is the leftmost pane below the toolbar.
+    this.repositoryPanelWidth = constrain(
+      this.repositoryPanelWidth,
+      150,
+      available - minSidebarWidth - diffPaneMinWidth
+    )
+    const repositoryPanelSpace = this.isRepositoryPanelCollapsed
+      ? collapsedRepositoryPanelWidth
+      : clamp(this.repositoryPanelWidth)
+
+    const maxSidebarWidth = Math.min(
+      available - Math.max(toolbarButtonsMinWidth, tutorialMinWidth),
+      available - repositoryPanelSpace - diffPaneMinWidth
+    )
+    this.sidebarWidth = constrain(
+      this.sidebarWidth,
+      minSidebarWidth,
+      maxSidebarWidth
+    )
+
+    // Now calculate the width we have left to distribute for the other panes
+    available -= clamp(this.sidebarWidth)
+
+    // The toolbar spans the width of the repository panel, so only the panes
+    // below it have to make room for it.
+    const filesMax = available - repositoryPanelSpace - diffPaneMinWidth
 
     this.commitSummaryWidth = constrain(this.commitSummaryWidth, 100, filesMax)
     this.stashedFilesWidth = constrain(this.stashedFilesWidth, 100, filesMax)
@@ -6282,6 +6318,36 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public _resetSidebarWidth(): Promise<void> {
     this.sidebarWidth = { ...this.sidebarWidth, value: defaultSidebarWidth }
     localStorage.removeItem(sidebarWidthConfigKey)
+    this.updateResizableConstraints()
+    this.emitUpdate()
+
+    return Promise.resolve()
+  }
+
+  public _setRepositoryPanelWidth(width: number): Promise<void> {
+    this.repositoryPanelWidth = { ...this.repositoryPanelWidth, value: width }
+    setNumber(repositoryPanelWidthConfigKey, width)
+    this.updateResizableConstraints()
+    this.emitUpdate()
+
+    return Promise.resolve()
+  }
+
+  public _resetRepositoryPanelWidth(): Promise<void> {
+    this.repositoryPanelWidth = {
+      ...this.repositoryPanelWidth,
+      value: defaultRepositoryPanelWidth,
+    }
+    localStorage.removeItem(repositoryPanelWidthConfigKey)
+    this.updateResizableConstraints()
+    this.emitUpdate()
+
+    return Promise.resolve()
+  }
+
+  public _setRepositoryPanelCollapsed(isCollapsed: boolean): Promise<void> {
+    this.isRepositoryPanelCollapsed = isCollapsed
+    setBoolean(repositoryPanelCollapsedKey, isCollapsed)
     this.updateResizableConstraints()
     this.emitUpdate()
 

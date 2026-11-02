@@ -14,6 +14,9 @@ import { IAheadBehind } from '../../models/branch'
 import { assertNever } from '../../lib/fatal-error'
 import { isDotCom } from '../../lib/endpoint-capabilities'
 import { Owner } from '../../models/owner'
+import { Account } from '../../models/account'
+import { getAccountLabelForRepository } from '../../lib/repository-accounts'
+import { findRepositoryGroup } from '../../lib/repository-groups'
 
 export type RepositoryListGroup =
   | {
@@ -55,6 +58,26 @@ export const getGroupKey = (group: RepositoryListGroup) => {
       assertNever(group, `Unknown repository group kind ${kind}`)
   }
 }
+
+/** Get the name to show for a repository group. */
+export function getGroupLabel(group: RepositoryListGroup) {
+  const { kind } = group
+  switch (kind) {
+    case 'custom':
+      return group.group.name
+    case 'enterprise':
+      return group.host
+    case 'other':
+      return 'Other'
+    case 'dotcom':
+      return group.owner.login
+    case 'recent':
+      return 'Recent'
+    default:
+      assertNever(group, `Unknown repository group kind ${kind}`)
+  }
+}
+
 export type Repositoryish = Repository | CloningRepository
 
 export interface IRepositoryListItem extends IFilterListItem {
@@ -139,6 +162,32 @@ export function groupRepositories(
         getAccountLabel
       ),
     }))
+}
+
+/** Group repositories by the groups of the user and the accounts they use. */
+export function groupUserRepositories(
+  repositories: ReadonlyArray<Repositoryish>,
+  localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
+  recentRepositories: ReadonlyArray<number>,
+  customGroups: ReadonlyArray<IRepositoryGroup>,
+  sshAliases: ReadonlyMap<number, string>,
+  accounts: ReadonlyArray<Account>
+) {
+  return groupRepositories(
+    repositories,
+    localRepositoryStateLookup,
+    recentRepositories,
+    repository =>
+      findRepositoryGroup(
+        customGroups,
+        repository.path,
+        sshAliases.get(repository.id)
+      ),
+    ({ gitHubRepository }) =>
+      gitHubRepository !== null
+        ? getAccountLabelForRepository(accounts, gitHubRepository)
+        : null
+  )
 }
 
 // Returns the display title for a repository, which is either the alias

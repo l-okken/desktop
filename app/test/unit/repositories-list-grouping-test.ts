@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { groupRepositories } from '../../src/ui/repositories-list/group-repositories'
+import {
+  getGroupLabel,
+  groupRepositories,
+  groupUserRepositories,
+} from '../../src/ui/repositories-list/group-repositories'
 import { Repository, ILocalRepositoryState } from '../../src/models/repository'
 import { CloningRepository } from '../../src/models/cloning-repository'
 import { gitHubRepoFixture } from '../helpers/github-repo-builder'
@@ -27,6 +31,33 @@ describe('repository list grouping', () => {
   ]
 
   const cache = new Map<number, ILocalRepositoryState>()
+
+  it('puts repositories in the group of their alias or folder', () => {
+    const group = {
+      id: 1,
+      name: 'Work',
+      sshHostAlias: 'github-work',
+      accountLogin: null,
+      userName: '',
+      userEmail: '',
+      rootPath: null,
+    }
+    const grouped = groupUserRepositories(
+      repositories,
+      cache,
+      [],
+      [group],
+      new Map([[2, 'github-work']]),
+      []
+    )
+
+    assert.equal(getGroupLabel(grouped[0].identifier), 'Work')
+    assert.equal(grouped[0].items[0].repository.path, 'repo2')
+    assert.deepStrictEqual(
+      grouped.map(g => getGroupLabel(g.identifier)),
+      ['Work', 'github.big-corp.com', 'Other']
+    )
+  })
 
   it('groups repositories by owners/Enterprise/Other', () => {
     const grouped = groupRepositories(repositories, cache, [])
