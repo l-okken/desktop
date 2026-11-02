@@ -16,7 +16,7 @@ export function findToastActivatorClsid() {
       'Windows',
       'Start Menu',
       'Programs',
-      'GitHub, Inc',
+      'Lennart Okken',
       'Forkdesk.lnk'
     ),
     path.join(os.homedir(), 'Desktop', 'Forkdesk.lnk'),
