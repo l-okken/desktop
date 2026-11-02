@@ -252,7 +252,9 @@ async function packageApp() {
     // Windows
     win32metadata: {
       CompanyName: getCompanyName(),
-      FileDescription: '',
+      // Windows shows this as the name of the app, for example when a browser
+      // asks to open it. Electron's own name stays in there if this is empty.
+      FileDescription: getProductName(),
       OriginalFilename: '',
       ProductName: getProductName(),
       InternalName: getProductName(),
@@ -319,7 +321,11 @@ function moveAnalysisFiles() {
 }
 
 function copyDependencies() {
-  const pkg: Package = require(path.join(projectRoot, 'app', 'package.json'))
+  // A copy, as package-info shares the required object and would otherwise see
+  // the changes below, which turned the product name into Forkdesk-dev-dev.
+  const pkg: Package = {
+    ...require(path.join(projectRoot, 'app', 'package.json')),
+  }
 
   const filterExternals = (dependencies: Record<string, string>) =>
     Object.fromEntries(
