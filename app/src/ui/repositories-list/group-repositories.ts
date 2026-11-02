@@ -64,6 +64,8 @@ export interface IRepositoryListItem extends IFilterListItem {
   readonly needsDisambiguation: boolean
   readonly aheadBehind: IAheadBehind | null
   readonly changedFilesCount: number
+  /** What to show about the account that the repository uses, if anything. */
+  readonly accountLabel: string | null
 }
 
 const recentRepositoriesThreshold = 7
@@ -99,7 +101,8 @@ export function groupRepositories(
   repositories: ReadonlyArray<Repositoryish>,
   localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
   recentRepositories: ReadonlyArray<number>,
-  findCustomGroup: CustomGroupFinder = () => null
+  findCustomGroup: CustomGroupFinder = () => null,
+  getAccountLabel: (repository: Repository) => string | null = () => null
 ): ReadonlyArray<IFilterListGroup<IRepositoryListItem, RepositoryListGroup>> {
   const includeRecentGroup = repositories.length > recentRepositoriesThreshold
   const recentSet = includeRecentGroup ? new Set(recentRepositories) : undefined
@@ -132,7 +135,8 @@ export function groupRepositories(
         group,
         repos,
         localRepositoryStateLookup,
-        groups
+        groups,
+        getAccountLabel
       ),
     }))
 }
@@ -146,7 +150,8 @@ const toSortedListItems = (
   group: RepositoryListGroup,
   repositories: ReadonlyArray<Repositoryish>,
   localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
-  groups: Map<string, RepoGroupItem>
+  groups: Map<string, RepoGroupItem>,
+  getAccountLabel: (repository: Repository) => string | null
 ): IRepositoryListItem[] => {
   const groupNames = new Map<string, number>()
   const allNames = new Map<string, number>()
@@ -187,6 +192,7 @@ const toSortedListItems = (
           ((allNames.get(title) ?? 0) > 1 && group.kind === 'recent'),
         aheadBehind: repoState?.aheadBehind ?? null,
         changedFilesCount: repoState?.changedFilesCount ?? 0,
+        accountLabel: r instanceof Repository ? getAccountLabel(r) : null,
       }
     })
     .sort(({ repository: x }, { repository: y }) =>

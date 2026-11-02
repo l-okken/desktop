@@ -27,6 +27,9 @@ interface IRepositoryListItemProps {
 
   /** Number of uncommitted changes */
   readonly changedFilesCount: number
+
+  /** What to show about the account that the repository uses, if anything. */
+  readonly accountLabel?: string | null
 }
 
 /** A repository item. */
@@ -76,6 +79,10 @@ export class RepositoryListItem extends React.Component<
           />
         </div>
 
+        {this.props.accountLabel ? (
+          <div className="account-label">{this.props.accountLabel}</div>
+        ) : null}
+
         {repository instanceof Repository &&
           renderRepoIndicators({
             aheadBehind: this.props.aheadBehind,
@@ -109,7 +116,8 @@ export class RepositoryListItem extends React.Component<
     ) {
       return (
         nextProps.repository.id !== this.props.repository.id ||
-        nextProps.matches !== this.props.matches
+        nextProps.matches !== this.props.matches ||
+        nextProps.accountLabel !== this.props.accountLabel
       )
     } else {
       return true

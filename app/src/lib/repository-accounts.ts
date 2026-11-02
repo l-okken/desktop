@@ -60,3 +60,25 @@ export function getAccountForRepositoryReference(
 
   return findByLogin(repository.owner.login) ?? candidates.at(0) ?? null
 }
+
+/**
+ * Get what to show the user about the account used for a repository.
+ *
+ * That's only of interest with several accounts to choose from, or when the
+ * account that a repository needs isn't signed in.
+ */
+export function getAccountLabelForRepository(
+  accounts: ReadonlyArray<Account>,
+  repository: IRepositoryReference
+): string | null {
+  const account = getAccountForRepositoryReference(accounts, repository)
+  if (account === null) {
+    const linked = getLinkedAccountLogin(repository)
+    return linked !== undefined ? `@${linked} (not signed in)` : null
+  }
+
+  const hasSeveralAccounts =
+    accounts.filter(a => a.endpoint === repository.endpoint).length > 1
+
+  return hasSeveralAccounts ? `@${account.login}` : null
+}

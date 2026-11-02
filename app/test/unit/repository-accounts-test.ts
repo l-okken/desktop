@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import { Account } from '../../src/models/account'
 import {
   getAccountForRepositoryReference,
+  getAccountLabelForRepository,
   linkRepositoryToAccount,
 } from '../../src/lib/repository-accounts'
 import { matchGitHubRepository } from '../../src/lib/repository-matching'
@@ -84,6 +85,31 @@ describe('repository accounts', () => {
           reference('work', 'repo')
         ),
         null
+      )
+    })
+  })
+
+  describe('getAccountLabelForRepository', () => {
+    it('shows the account when there are several to choose from', () => {
+      linkRepositoryToAccount(reference('some-org', 'repo'), 'work')
+      assert.equal(
+        getAccountLabelForRepository(accounts, reference('some-org', 'repo')),
+        '@work'
+      )
+    })
+
+    it('shows nothing with a single account', () => {
+      assert.equal(
+        getAccountLabelForRepository([personal], reference('some-org', 'repo')),
+        null
+      )
+    })
+
+    it('tells when the account of a repository is not signed in', () => {
+      linkRepositoryToAccount(reference('some-org', 'repo'), 'work')
+      assert.equal(
+        getAccountLabelForRepository([personal], reference('some-org', 'repo')),
+        '@work (not signed in)'
       )
     })
   })

@@ -12,6 +12,7 @@ import { findDefaultRemote } from './helpers/find-default-remote'
 import { getLoginForSSHAlias } from '../ssh/ssh-alias-login'
 import {
   getAccountForRepositoryReference,
+  getLinkedAccountLogin,
   linkRepositoryToAccount,
 } from '../repository-accounts'
 import { writeFile } from 'fs/promises'
@@ -1050,6 +1051,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.accountsStore.onDidUpdate(accounts => {
       this.accounts = accounts
+      void this.refreshRepositorySSHAliases()
       this.statsStore.setUsesShortLivedToken(
         accounts.some(account => this.accountsStore.isRefreshable(account))
       )
@@ -5088,13 +5090,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /**
    * Find out which SSH alias each repository uses, which decides the group that
-   * it's in. Only needed for those who've actually created groups.
+   * it's in and the account that it uses. Only needed for those who've actually
+   * created groups, or have several accounts to tell apart.
    */
   private async refreshRepositorySSHAliases() {
-    if (this.repositoryGroups.length === 0) {
+    if (this.repositoryGroups.length === 0 && this.accounts.length < 2) {
       return
     }
 
+    let hasNewLink = false
     const aliases = new Map<number, string>()
     for (const repository of this.repositories) {
       if (repository instanceof Repository && !repository.missing) {
@@ -5104,11 +5108,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const alias = parsed !== null ? getRemoteSSHAlias(parsed) : null
         if (alias !== null) {
           aliases.set(repository.id, alias)
+
+          const login = await getLoginForSSHAlias(alias)
+          const ghRepo = repository.gitHubRepository
+          if (
+            login !== null &&
+            ghRepo !== null &&
+            getLinkedAccountLogin(ghRepo) !== login
+          ) {
+            linkRepositoryToAccount(ghRepo, login)
+            hasNewLink = true
+          }
         }
       }
     }
 
     if (
+      hasNewLink ||
       aliases.size !== this.repositorySSHAliases.size ||
       [...aliases].some(([k, v]) => this.repositorySSHAliases.get(k) !== v)
     ) {

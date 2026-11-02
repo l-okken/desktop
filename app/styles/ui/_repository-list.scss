@@ -165,6 +165,13 @@
 
 .repository-list,
 .repository-list-item-tooltip {
+  .account-label {
+    flex-shrink: 0;
+    margin-left: var(--spacing-half);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary-color);
+  }
+
   .repo-indicators {
     margin-left: auto;
     display: flex;

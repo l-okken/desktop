@@ -1,3 +1,4 @@
+import { getAccountLabelForRepository } from '../lib/repository-accounts'
 import { AddSSHAccountDialog } from './add-ssh-account/add-ssh-account-dialog'
 import * as React from 'react'
 import * as Path from 'path'
@@ -3403,6 +3404,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     const repositories = this.state.repositories
     return (
       <RepositoriesList
+        accounts={this.state.accounts}
         repositoryGroups={this.state.repositoryGroups}
         repositorySSHAliases={this.state.repositorySSHAliases}
         filterText={filterText}
@@ -3550,6 +3552,14 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     const foldoutWidth = clamp(this.state.sidebarWidth)
 
+    const ghRepo =
+      repository instanceof Repository ? repository.gitHubRepository : null
+    const accountLabel =
+      ghRepo !== null
+        ? getAccountLabelForRepository(this.state.accounts, ghRepo)
+        : null
+    const description = __DARWIN__ ? 'Current Repository' : 'Current repository'
+
     const foldoutStyle: React.CSSProperties = {
       position: 'absolute',
       marginLeft: 0,
@@ -3568,7 +3578,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       <ToolbarDropdown
         icon={icon}
         title={title}
-        description={__DARWIN__ ? 'Current Repository' : 'Current repository'}
+        description={
+          accountLabel !== null
+            ? `${description} · ${accountLabel}`
+            : description
+        }
         tooltip={tooltip}
         foldoutStyle={foldoutStyle}
         onContextMenu={this.onRepositoryToolbarButtonContextMenu}

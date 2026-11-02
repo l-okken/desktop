@@ -1,3 +1,5 @@
+import { Account } from '../../models/account'
+import { getAccountLabelForRepository } from '../../lib/repository-accounts'
 import { IRepositoryGroup } from '../../models/repository-group'
 import { findRepositoryGroup } from '../../lib/repository-groups'
 import * as React from 'react'
@@ -36,6 +38,9 @@ interface IRepositoriesListProps {
   readonly selectedRepository: Repositoryish | null
   readonly repositories: ReadonlyArray<Repositoryish>
   readonly recentRepositories: ReadonlyArray<number>
+
+  /** The accounts which are signed in. */
+  readonly accounts: ReadonlyArray<Account>
 
   /** The groups which the user created for their repositories. */
   readonly repositoryGroups: ReadonlyArray<IRepositoryGroup>
@@ -132,7 +137,8 @@ export class RepositoriesList extends React.Component<
       localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
       recentRepositories: ReadonlyArray<number>,
       customGroups: ReadonlyArray<IRepositoryGroup>,
-      sshAliases: ReadonlyMap<number, string>
+      sshAliases: ReadonlyMap<number, string>,
+      accounts: ReadonlyArray<Account>
     ) =>
       repositories === null
         ? []
@@ -145,7 +151,11 @@ export class RepositoriesList extends React.Component<
                 customGroups,
                 repository.path,
                 sshAliases.get(repository.id)
-              )
+              ),
+            ({ gitHubRepository }) =>
+              gitHubRepository !== null
+                ? getAccountLabelForRepository(accounts, gitHubRepository)
+                : null
           )
   )
 
@@ -179,6 +189,7 @@ export class RepositoriesList extends React.Component<
         matches={matches}
         aheadBehind={item.aheadBehind}
         changedFilesCount={item.changedFilesCount}
+        accountLabel={item.accountLabel}
       />
     )
   }
@@ -357,7 +368,8 @@ export class RepositoriesList extends React.Component<
       this.props.localRepositoryStateLookup,
       this.props.recentRepositories,
       this.props.repositoryGroups,
-      this.props.repositorySSHAliases
+      this.props.repositorySSHAliases,
+      this.props.accounts
     )
 
     // So there's two types of selection at play here. There's the repository
