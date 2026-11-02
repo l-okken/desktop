@@ -1,3 +1,4 @@
+import { IRepositoryGroup } from '../../models/repository-group'
 import Dexie, { Transaction } from 'dexie'
 import { BaseDatabase } from './base-database'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
@@ -82,6 +83,11 @@ export interface IDatabaseRepository {
  */
 type BranchKey = [number, string]
 
+/** A group as stored in the database, see `IRepositoryGroup`. */
+export type IDatabaseRepositoryGroup = Omit<IRepositoryGroup, 'id'> & {
+  readonly id?: number
+}
+
 /** The repositories database. */
 export class RepositoriesDatabase extends BaseDatabase {
   /** The local repositories table. */
@@ -101,6 +107,9 @@ export class RepositoriesDatabase extends BaseDatabase {
 
   /** The GitHub repository owners table. */
   public declare owners: Dexie.Table<IDatabaseOwner, number>
+
+  /** The groups which the user created for their repositories. */
+  public declare repositoryGroups: Dexie.Table<IDatabaseRepositoryGroup, number>
 
   /**
    * Initialize a new repository database.
@@ -146,6 +155,7 @@ export class RepositoriesDatabase extends BaseDatabase {
 
     this.conditionalVersion(8, {}, ensureNoUndefinedParentID)
     this.conditionalVersion(9, { owners: '++id, &key' }, createOwnerKey)
+    this.conditionalVersion(10, { repositoryGroups: '++id' })
   }
 }
 

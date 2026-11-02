@@ -47,6 +47,7 @@ async function renderCloneDialog(
       dispatcher={dispatcher as Dispatcher}
       onDismissed={t.mock.fn()}
       accounts={[]}
+      repositoryGroups={[]}
       initialURL={initialURL}
       selectedTab={CloneRepositoryTab.Generic}
       onTabSelected={t.mock.fn()}

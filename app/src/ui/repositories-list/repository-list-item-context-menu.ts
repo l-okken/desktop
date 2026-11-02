@@ -1,3 +1,4 @@
+import { IRepositoryGroup } from '../../models/repository-group'
 import { Repository } from '../../models/repository'
 import { IMenuItem } from '../../lib/menu-item'
 import { Repositoryish } from './group-repositories'
@@ -10,6 +11,12 @@ import {
 
 interface IRepositoryListItemContextMenuConfig {
   repository: Repositoryish
+  repositoryGroups?: ReadonlyArray<IRepositoryGroup>
+  repositorySSHAlias?: string
+  onMoveRepositoryToGroup?: (
+    repository: Repository,
+    group: IRepositoryGroup
+  ) => void
   shellLabel: string | undefined
   externalEditorLabel: string | undefined
   askForConfirmationOnRemoveRepository: boolean
@@ -41,6 +48,7 @@ export const generateRepositoryListContextMenu = (
   const items: ReadonlyArray<IMenuItem> = [
     ...buildAliasMenuItems(config),
     ...buildWorktreeMenuItems(config),
+    ...buildGroupMenuItems(config),
     {
       label: __DARWIN__ ? 'Copy Repo Name' : 'Copy repo name',
       action: () => writeClipboardText(repository.name),
@@ -78,6 +86,34 @@ export const generateRepositoryListContextMenu = (
   ]
 
   return items
+}
+
+const buildGroupMenuItems = (
+  config: IRepositoryListItemContextMenuConfig
+): ReadonlyArray<IMenuItem> => {
+  const { repository, repositorySSHAlias } = config
+
+  if (!(repository instanceof Repository) || repository.missing) {
+    return []
+  }
+
+  const groups = (config.repositoryGroups ?? []).filter(
+    g => g.sshHostAlias.toLowerCase() !== repositorySSHAlias?.toLowerCase()
+  )
+
+  if (groups.length === 0) {
+    return []
+  }
+
+  return [
+    {
+      label: __DARWIN__ ? 'Move to Group' : 'Move to group',
+      submenu: groups.map(group => ({
+        label: `${group.name} (${group.sshHostAlias})`,
+        action: () => config.onMoveRepositoryToGroup?.(repository, group),
+      })),
+    },
+  ]
 }
 
 const buildAliasMenuItems = (

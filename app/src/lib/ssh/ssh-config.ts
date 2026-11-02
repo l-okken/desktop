@@ -183,6 +183,16 @@ export function getSSHHostConfig(host: string): ISSHHostConfig {
   return resolveSSHHost(cachedBlocks, host)
 }
 
+/** Get the hosts of the config file that are aliases for another host. */
+export function getSSHAliases(): ReadonlyArray<string> {
+  const hosts = cachedBlocks
+    .flatMap(b => b.patterns)
+    .filter(p => !/[*?!]/.test(p))
+  return [...new Set(hosts)].filter(
+    host => getSSHHostConfig(host).hostName.toLowerCase() !== host.toLowerCase()
+  )
+}
+
 /**
  * Get the host which a remote really connects to.
  *

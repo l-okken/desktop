@@ -1,3 +1,4 @@
+import { IRepositoryGroup } from '../../models/repository-group'
 import {
   RepositoriesDatabase,
   IDatabaseGitHubRepository,
@@ -56,6 +57,22 @@ export class RepositoriesStore extends TypedBaseStore<
 
   public constructor(private readonly db: RepositoriesDatabase) {
     super()
+  }
+
+  /** Get the groups which the user created for their repositories. */
+  public async getRepositoryGroups(): Promise<ReadonlyArray<IRepositoryGroup>> {
+    const groups = await this.db.repositoryGroups.toArray()
+    return groups.map(g => ({ ...g, id: forceUnwrap('Group has no id', g.id) }))
+  }
+
+  public async addRepositoryGroup(
+    group: Omit<IRepositoryGroup, 'id'>
+  ): Promise<IRepositoryGroup> {
+    return { ...group, id: await this.db.repositoryGroups.add(group) }
+  }
+
+  public async removeRepositoryGroup(group: IRepositoryGroup): Promise<void> {
+    await this.db.repositoryGroups.delete(group.id)
   }
 
   /**

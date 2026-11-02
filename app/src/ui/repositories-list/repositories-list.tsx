@@ -1,3 +1,5 @@
+import { IRepositoryGroup } from '../../models/repository-group'
+import { findRepositoryGroup } from '../../lib/repository-groups'
 import * as React from 'react'
 
 import { commitGrammar, RepositoryListItem } from './repository-list-item'
@@ -34,6 +36,12 @@ interface IRepositoriesListProps {
   readonly selectedRepository: Repositoryish | null
   readonly repositories: ReadonlyArray<Repositoryish>
   readonly recentRepositories: ReadonlyArray<number>
+
+  /** The groups which the user created for their repositories. */
+  readonly repositoryGroups: ReadonlyArray<IRepositoryGroup>
+
+  /** The SSH alias used by the default remote of repositories, by their id. */
+  readonly repositorySSHAliases: ReadonlyMap<number, string>
 
   /** A cache of the latest repository state values, keyed by the repository id */
   readonly localRepositoryStateLookup: ReadonlyMap<
@@ -122,14 +130,22 @@ export class RepositoriesList extends React.Component<
     (
       repositories: ReadonlyArray<Repositoryish> | null,
       localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
-      recentRepositories: ReadonlyArray<number>
+      recentRepositories: ReadonlyArray<number>,
+      customGroups: ReadonlyArray<IRepositoryGroup>,
+      sshAliases: ReadonlyMap<number, string>
     ) =>
       repositories === null
         ? []
         : groupRepositories(
             repositories,
             localRepositoryStateLookup,
-            recentRepositories
+            recentRepositories,
+            repository =>
+              findRepositoryGroup(
+                customGroups,
+                repository.path,
+                sshAliases.get(repository.id)
+              )
           )
   )
 
@@ -240,9 +256,18 @@ export class RepositoriesList extends React.Component<
     )
   }
 
+  private onMoveRepositoryToGroup = (
+    repository: Repository,
+    group: IRepositoryGroup
+  ) => {
+    this.props.dispatcher.moveRepositoryToGroup(repository, group)
+  }
+
   private getGroupLabel(group: RepositoryListGroup) {
     const { kind } = group
-    if (kind === 'enterprise') {
+    if (kind === 'custom') {
+      return group.group.name
+    } else if (kind === 'enterprise') {
       return group.host
     } else if (kind === 'other') {
       return 'Other'
@@ -288,6 +313,11 @@ export class RepositoriesList extends React.Component<
     event.preventDefault()
 
     const items = generateRepositoryListContextMenu({
+      repositoryGroups: this.props.repositoryGroups,
+      repositorySSHAlias: this.props.repositorySSHAliases.get(
+        item.repository.id
+      ),
+      onMoveRepositoryToGroup: this.onMoveRepositoryToGroup,
       onRemoveRepository: this.props.onRemoveRepository,
       onShowRepository: this.props.onShowRepository,
       onOpenInShell: this.props.onOpenInShell,
@@ -325,7 +355,9 @@ export class RepositoriesList extends React.Component<
     const groups = this.getRepositoryGroups(
       this.props.repositories,
       this.props.localRepositoryStateLookup,
-      this.props.recentRepositories
+      this.props.recentRepositories,
+      this.props.repositoryGroups,
+      this.props.repositorySSHAliases
     )
 
     // So there's two types of selection at play here. There's the repository

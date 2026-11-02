@@ -1734,6 +1734,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <Preferences
             key="preferences"
+            repositoryGroups={this.state.repositoryGroups}
             initialSelectedTab={popup.initialSelectedTab}
             dispatcher={this.props.dispatcher}
             accounts={this.state.accounts}
@@ -1888,6 +1889,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         return (
           <CloneRepository
             key="clone-repository"
+            repositoryGroups={this.state.repositoryGroups}
             accounts={this.state.accounts}
             initialURL={popup.initialURL}
             onDismissed={onPopupDismissedFn}
@@ -3391,6 +3393,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     const repositories = this.state.repositories
     return (
       <RepositoriesList
+        repositoryGroups={this.state.repositoryGroups}
+        repositorySSHAliases={this.state.repositorySSHAliases}
         filterText={filterText}
         onFilterTextChanged={this.onRepositoryFilterTextChanged}
         selectedRepository={selectedRepository}

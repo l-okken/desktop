@@ -1,3 +1,6 @@
+import { IRepositoryGroup } from '../../models/repository-group'
+import { Select } from '../lib/select'
+import { getRemoteUrlForAlias } from '../../lib/repository-groups'
 import * as Path from 'path'
 import * as React from 'react'
 import { Dispatcher } from '../dispatcher'
@@ -38,6 +41,9 @@ interface ICloneRepositoryProps {
   readonly onDismissed: () => void
 
   readonly accounts: ReadonlyArray<Account>
+
+  /** The groups which the user created for their repositories. */
+  readonly repositoryGroups: ReadonlyArray<IRepositoryGroup>
 
   /** The initial URL or `owner/name` shortcut to use. */
   readonly initialURL: string | null
@@ -88,6 +94,9 @@ interface ICloneRepositoryState {
 
   /** Are we currently trying to load the entered repository? */
   readonly loading: boolean
+
+  /** The group to clone the repository into, if any. */
+  readonly selectedGroupId: number | null
 
   /**
    * The persisted state of the CloneGitHubRepository component for
@@ -194,6 +203,7 @@ export class CloneRepository extends React.Component<
     this.state = {
       initialPath: defaultDirectory,
       loading: false,
+      selectedGroupId: null,
       dotComTabState: {
         kind: 'dotComTabState',
         filterText: '',
@@ -282,6 +292,8 @@ export class CloneRepository extends React.Component<
 
         {error ? <DialogError>{error.message}</DialogError> : null}
 
+        {this.renderGroupSelect()}
+
         <div role="tabpanel" aria-labelledby={this.getSelectedTabId()}>
           {this.renderActiveTab()}
         </div>
@@ -289,6 +301,61 @@ export class CloneRepository extends React.Component<
         {this.renderFooter()}
       </Dialog>
     )
+  }
+
+  private renderGroupSelect() {
+    const { repositoryGroups } = this.props
+
+    if (repositoryGroups.length === 0) {
+      return null
+    }
+
+    return (
+      <DialogContent>
+        <Select
+          label="Group"
+          value={`${this.state.selectedGroupId ?? ''}`}
+          onChange={this.onGroupChanged}
+        >
+          <option value="">None</option>
+          {repositoryGroups.map(group => (
+            <option key={group.id} value={group.id}>
+              {group.name} ({group.sshHostAlias})
+            </option>
+          ))}
+        </Select>
+      </DialogContent>
+    )
+  }
+
+  private getSelectedGroup() {
+    const { selectedGroupId } = this.state
+    return (
+      this.props.repositoryGroups.find(g => g.id === selectedGroupId) ?? null
+    )
+  }
+
+  private onGroupChanged = (event: React.FormEvent<HTMLSelectElement>) => {
+    const { value } = event.currentTarget
+    const selectedGroupId = value.length > 0 ? parseInt(value, 10) : null
+    const rootPath = this.props.repositoryGroups.find(
+      g => g.id === selectedGroupId
+    )?.rootPath
+
+    this.setState({ selectedGroupId })
+
+    if (rootPath !== null && rootPath !== undefined) {
+      const { lastParsedIdentifier } = this.getSelectedTabState()
+      const name =
+        lastParsedIdentifier !== null
+          ? sanitizeCloneName(lastParsedIdentifier.name)
+          : null
+
+      this.setSelectedTabState(
+        { path: name !== null ? Path.join(rootPath, name) : rootPath },
+        this.validatePath
+      )
+    }
   }
 
   private getSelectedTabId = () => {
@@ -790,7 +857,18 @@ export class CloneRepository extends React.Component<
       return
     }
 
-    const cloneInfo = await this.resolveCloneInfo()
+    // Going through an alias means we don't have to look it up using an account.
+    const group = this.getSelectedGroup()
+    const groupUrl =
+      group !== null
+        ? getRemoteUrlForAlias(
+            this.getSelectedTabState().url,
+            group.sshHostAlias
+          )
+        : null
+
+    const cloneInfo =
+      groupUrl !== null ? { url: groupUrl } : await this.resolveCloneInfo()
     if (!cloneInfo) {
       const error = new Error(
         `We couldn't find that repository. Check that you are logged in, the network is accessible, and the URL or repository alias are spelled correctly.`
@@ -800,7 +878,9 @@ export class CloneRepository extends React.Component<
       return
     }
 
-    const { url, defaultBranch } = cloneInfo
+    const { url } = cloneInfo
+    const defaultBranch =
+      'defaultBranch' in cloneInfo ? cloneInfo.defaultBranch : undefined
 
     this.props.dispatcher.closeFoldout(FoldoutType.Repository)
     try {

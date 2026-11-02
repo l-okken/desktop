@@ -1,3 +1,4 @@
+import { IRepositoryGroup } from '../../models/repository-group'
 import { Disposable } from 'event-kit'
 
 import {
@@ -1877,6 +1878,26 @@ export class Dispatcher {
       repository,
       workflowPreferences
     )
+  }
+
+  /** Create a group for repositories. */
+  public addRepositoryGroup(
+    group: Omit<IRepositoryGroup, 'id' | 'accountLogin'>
+  ): Promise<void> {
+    return this.appStore._addRepositoryGroup(group)
+  }
+
+  /** Remove a group, which leaves its repositories as they are. */
+  public removeRepositoryGroup(group: IRepositoryGroup): Promise<void> {
+    return this.appStore._removeRepositoryGroup(group)
+  }
+
+  /** Have a repository connect through the SSH alias of a group. */
+  public moveRepositoryToGroup(
+    repository: Repository,
+    group: IRepositoryGroup
+  ): Promise<void> {
+    return this.appStore._moveRepositoryToGroup(repository, group)
   }
 
   public async setAppFocusState(isFocused: boolean): Promise<void> {

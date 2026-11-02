@@ -1,5 +1,14 @@
 import * as Path from 'path'
-import { getRemoteSSHAlias, loadSSHConfig } from '../ssh/ssh-config'
+import {
+  getRemoteSSHAlias,
+  getSSHHostConfig,
+  loadSSHConfig,
+  resolveRemoteHostname,
+} from '../ssh/ssh-config'
+import { IRepositoryGroup } from '../../models/repository-group'
+import { getRemoteUrlForAlias } from '../repository-groups'
+import { syncManagedGitConfig } from '../git/managed-git-config'
+import { findDefaultRemote } from './helpers/find-default-remote'
 import { getLoginForSSHAlias } from '../ssh/ssh-alias-login'
 import {
   getAccountForRepositoryReference,
@@ -608,6 +617,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private readonly gitStoreCache: GitStoreCache
 
   private accounts: ReadonlyArray<Account> = new Array<Account>()
+  private repositoryGroups: ReadonlyArray<IRepositoryGroup> = []
+  private repositorySSHAliases: ReadonlyMap<number, string> = new Map()
   private repositories: ReadonlyArray<Repository> = new Array<Repository>()
   private recentRepositories: ReadonlyArray<number> = new Array<number>()
 
@@ -1068,6 +1079,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.repositoriesStore.onDidUpdate(updateRepositories => {
       this.repositories = updateRepositories
       this.updateRepositorySelectionAfterRepositoriesChanged()
+      void this.refreshRepositorySSHAliases()
       this.emitUpdate()
     })
 
@@ -1279,6 +1291,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     return {
       accounts: this.accounts,
+      repositoryGroups: this.repositoryGroups,
+      repositorySSHAliases: this.repositorySSHAliases,
       repositories,
       recentRepositories: this.recentRepositories,
       localRepositoryStateLookup: this.localRepositoryStateLookup,
@@ -2444,6 +2458,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** Load the initial state for the app. */
   public async loadInitialState() {
     await loadSSHConfig()
+    this.repositoryGroups = await this.repositoriesStore.getRepositoryGroups()
 
     const [accounts, repositories] = await Promise.all([
       this.accountsStore.getAll(),
@@ -5068,6 +5083,108 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     return match
+  }
+
+  /**
+   * Find out which SSH alias each repository uses, which decides the group that
+   * it's in. Only needed for those who've actually created groups.
+   */
+  private async refreshRepositorySSHAliases() {
+    if (this.repositoryGroups.length === 0) {
+      return
+    }
+
+    const aliases = new Map<number, string>()
+    for (const repository of this.repositories) {
+      if (repository instanceof Repository && !repository.missing) {
+        const remotes = await getRemotes(repository).catch(() => [])
+        const remote = findDefaultRemote(remotes)
+        const parsed = remote !== null ? parseRemote(remote.url) : null
+        const alias = parsed !== null ? getRemoteSSHAlias(parsed) : null
+        if (alias !== null) {
+          aliases.set(repository.id, alias)
+        }
+      }
+    }
+
+    if (
+      aliases.size !== this.repositorySSHAliases.size ||
+      [...aliases].some(([k, v]) => this.repositorySSHAliases.get(k) !== v)
+    ) {
+      this.repositorySSHAliases = aliases
+      this.emitUpdate()
+    }
+  }
+
+  private async syncRepositoryGroupsToGitConfig(
+    removed: ReadonlyArray<IRepositoryGroup> = []
+  ) {
+    try {
+      await syncManagedGitConfig(this.repositoryGroups, removed)
+    } catch (e) {
+      log.error('Unable to update the Git configuration for groups', e)
+      this.emitError(e)
+    }
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _addRepositoryGroup(
+    group: Omit<IRepositoryGroup, 'id' | 'accountLogin'>
+  ): Promise<void> {
+    const accountLogin = await getLoginForSSHAlias(group.sshHostAlias)
+    const added = await this.repositoriesStore.addRepositoryGroup({
+      ...group,
+      accountLogin,
+    })
+    this.repositoryGroups = [...this.repositoryGroups, added]
+    this.emitUpdate()
+
+    await this.syncRepositoryGroupsToGitConfig()
+    await this.refreshRepositorySSHAliases()
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _removeRepositoryGroup(group: IRepositoryGroup): Promise<void> {
+    await this.repositoriesStore.removeRepositoryGroup(group)
+    this.repositoryGroups = this.repositoryGroups.filter(g => g.id !== group.id)
+    this.emitUpdate()
+
+    await this.syncRepositoryGroupsToGitConfig([group])
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _moveRepositoryToGroup(
+    repository: Repository,
+    group: IRepositoryGroup
+  ): Promise<void> {
+    const gitStore = this.gitStoreCache.get(repository)
+    await gitStore.loadRemotes()
+
+    const remote = gitStore.defaultRemote
+    const parsed = remote !== null ? parseRemote(remote.url) : null
+    const url =
+      remote !== null
+        ? getRemoteUrlForAlias(remote.url, group.sshHostAlias)
+        : null
+
+    if (
+      remote === null ||
+      parsed === null ||
+      url === null ||
+      resolveRemoteHostname(parsed).toLowerCase() !==
+        getSSHHostConfig(group.sshHostAlias).hostName.toLowerCase()
+    ) {
+      this.emitError(
+        new Error(
+          `The remote of ${repository.name} isn't on the host that "${group.sshHostAlias}" connects to, so it can't be moved to this group.`
+        )
+      )
+      return
+    }
+
+    await this._setRemoteURL(repository, remote.name, url)
+    await this.refreshRepositorySSHAliases()
+    await this.repositoryWithRefreshedGitHubRepository(repository)
   }
 
   /** Tell the user once per session about an account a repository needs. */
@@ -8218,6 +8335,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     if (this.appIsFocused) {
       await loadSSHConfig()
+      void this.refreshRepositorySSHAliases()
       this.repositoryIndicatorUpdater.resume()
       if (this.selectedRepository instanceof Repository) {
         this.startPullRequestUpdater(this.selectedRepository)

@@ -1,3 +1,5 @@
+import { IRepositoryGroup } from '../../models/repository-group'
+import { RepositoryGroups } from './repository-groups'
 import * as React from 'react'
 import { Account, isDotComAccount } from '../../models/account'
 import { PreferencesTab } from '../../models/preferences'
@@ -88,6 +90,7 @@ import { validateCopilotAppPath } from '../../lib/copilot-app'
 
 interface IPreferencesProps {
   readonly dispatcher: Dispatcher
+  readonly repositoryGroups: ReadonlyArray<IRepositoryGroup>
   readonly accounts: ReadonlyArray<Account>
   readonly repository: Repository | null
   readonly onDismissed: () => void
@@ -435,6 +438,10 @@ export class Preferences extends React.Component<
               <Octicon className="icon" symbol={octicons.accessibility} />
               Accessibility
             </span>
+            <span id={this.getTabId(PreferencesTab.Groups)}>
+              <Octicon className="icon" symbol={octicons.fileDirectory} />
+              Groups
+            </span>
           </TabBar>
 
           {this.renderActiveTab()}
@@ -474,11 +481,24 @@ export class Preferences extends React.Component<
       case PreferencesTab.Accessibility:
         suffix = 'accessibility'
         break
+      case PreferencesTab.Groups:
+        suffix = 'groups'
+        break
       default:
         return assertNever(tab, `Unknown tab type: ${tab}`)
     }
 
     return `preferences-tab-${suffix}`
+  }
+
+  private onAddRepositoryGroup = (
+    group: Omit<IRepositoryGroup, 'id' | 'accountLogin'>
+  ) => {
+    this.props.dispatcher.addRepositoryGroup(group)
+  }
+
+  private onRemoveRepositoryGroup = (group: IRepositoryGroup) => {
+    this.props.dispatcher.removeRepositoryGroup(group)
   }
 
   private onDotComSignIn = () => {
@@ -543,6 +563,15 @@ export class Preferences extends React.Component<
     const index = this.state.selectedIndex
     let View
     switch (index) {
+      case PreferencesTab.Groups:
+        View = (
+          <RepositoryGroups
+            groups={this.props.repositoryGroups}
+            onAddGroup={this.onAddRepositoryGroup}
+            onRemoveGroup={this.onRemoveRepositoryGroup}
+          />
+        )
+        break
       case PreferencesTab.Accounts:
         View = (
           <Accounts

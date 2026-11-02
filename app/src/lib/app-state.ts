@@ -1,3 +1,4 @@
+import { IRepositoryGroup } from '../models/repository-group'
 import type {
   CopilotModelsByAccount,
   CopilotModelSelectionsByAccount,
@@ -92,6 +93,12 @@ export type PossibleSelections =
 /** All of the shared app state. */
 export interface IAppState {
   readonly accounts: ReadonlyArray<Account>
+
+  /** The groups which the user created for their repositories. */
+  readonly repositoryGroups: ReadonlyArray<IRepositoryGroup>
+
+  /** The SSH alias used by the default remote of repositories, by their id. */
+  readonly repositorySSHAliases: ReadonlyMap<number, string>
   /**
    * The current list of repositories tracked in the application
    */
