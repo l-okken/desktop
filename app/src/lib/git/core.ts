@@ -1,3 +1,4 @@
+import { getSSHErrorDescription } from '../ssh/ssh-error-description'
 import {
   exec,
   GitError as DugiteError,
@@ -449,6 +450,11 @@ export function getDescriptionForError(
   stderr: string
 ): string | null {
   if (isAuthFailureError(error)) {
+    const sshError = getSSHErrorDescription(stderr)
+    if (sshError !== null) {
+      return sshError
+    }
+
     const menuHint = __DARWIN__ ? 'Forkdesk > Settings.' : 'File > Options.'
     return `Authentication failed. Some common reasons include:
 
