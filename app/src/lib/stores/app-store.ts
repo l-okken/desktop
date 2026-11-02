@@ -620,6 +620,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private accounts: ReadonlyArray<Account> = new Array<Account>()
   private repositoryGroups: ReadonlyArray<IRepositoryGroup> = []
   private repositorySSHAliases: ReadonlyMap<number, string> = new Map()
+  private sshAliasRefresh: Promise<void> | null = null
+  private isSSHAliasRefreshQueued = false
   private repositories: ReadonlyArray<Repository> = new Array<Repository>()
   private recentRepositories: ReadonlyArray<number> = new Array<number>()
 
@@ -5093,7 +5095,28 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * it's in and the account that it uses. Only needed for those who've actually
    * created groups, or have several accounts to tell apart.
    */
-  private async refreshRepositorySSHAliases() {
+  private refreshRepositorySSHAliases(): Promise<void> {
+    // This goes through all repositories and is asked for by a lot of updates,
+    // so there's only ever one running with at most one more to follow it.
+    if (this.sshAliasRefresh !== null) {
+      this.isSSHAliasRefreshQueued = true
+      return this.sshAliasRefresh
+    }
+
+    this.sshAliasRefresh = this.performSSHAliasRefresh()
+      .catch(e => log.error('Unable to refresh the SSH aliases', e))
+      .finally(() => {
+        this.sshAliasRefresh = null
+        if (this.isSSHAliasRefreshQueued) {
+          this.isSSHAliasRefreshQueued = false
+          void this.refreshRepositorySSHAliases()
+        }
+      })
+
+    return this.sshAliasRefresh
+  }
+
+  private async performSSHAliasRefresh() {
     if (this.repositoryGroups.length === 0 && this.accounts.length < 2) {
       return
     }

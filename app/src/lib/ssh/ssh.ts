@@ -8,7 +8,11 @@ import {
 
 const WindowsOpenSSHPath = 'C:/Windows/System32/OpenSSH/ssh.exe'
 
-export const UseWindowsOpenSSHKey: string = 'useWindowsOpenSSH'
+/**
+ * Not the key of the official app. Early builds of Forkdesk turned this on by
+ * default, and this way that doesn't stick around for those who never chose it.
+ */
+export const UseWindowsOpenSSHKey: string = 'forkdesk-use-system-openssh'
 
 export const isWindowsOpenSSHAvailable = memoizeOne(
   async (): Promise<boolean> => {
