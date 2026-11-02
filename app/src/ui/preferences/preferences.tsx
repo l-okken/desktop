@@ -741,11 +741,9 @@ export class Preferences extends React.Component<
         View = (
           <Advanced
             useWindowsOpenSSH={this.state.useWindowsOpenSSH}
-            optOutOfUsageTracking={this.state.optOutOfUsageTracking}
             useExternalCredentialHelper={this.state.useExternalCredentialHelper}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
             onUseWindowsOpenSSHChanged={this.onUseWindowsOpenSSHChanged}
-            onOptOutofReportingChanged={this.onOptOutofReportingChanged}
             onUseExternalCredentialHelperChanged={
               this.onUseExternalCredentialHelperChanged
             }
@@ -807,10 +805,6 @@ export class Preferences extends React.Component<
 
   private onNotificationsEnabledChanged = (notificationsEnabled: boolean) => {
     this.setState({ notificationsEnabled })
-  }
-
-  private onOptOutofReportingChanged = (value: boolean) => {
-    this.setState({ optOutOfUsageTracking: value })
   }
 
   private onUseExternalCredentialHelperChanged = (value: boolean) => {

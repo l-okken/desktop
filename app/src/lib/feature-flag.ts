@@ -136,6 +136,12 @@ export const enableWorktreeSupport = () => true
 export const enableCopilotAppHandoff = () =>
   (__DARWIN__ || __WIN32__) && enableBetaFeatures()
 
+/** Forkdesk never reports usage stats to GitHub. */
+export const enableStatsReporting = () => false
+
+/** Forkdesk does not use GitHub's update server. */
+export const enableAutoUpdates = () => false
+
 /** Should stats be sent to the new telemetry endpoint? */
 export function enableNewStatsEndpoint(): boolean {
   return true

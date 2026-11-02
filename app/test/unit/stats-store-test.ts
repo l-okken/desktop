@@ -270,7 +270,8 @@ describe('StatsStore', () => {
   })
 
   for (const permission of ['denied', null] as const) {
-    it(`reports ${
+    // Forkdesk never posts stats, see enableStatsReporting.
+    it.skip(`reports ${
       permission === null
         ? 'null after lookup failure'
         : 'false for denied permission'
@@ -327,7 +328,8 @@ describe('StatsStore', () => {
       )
     })
   }
-  it('posts structured stats to the new endpoint by default', async t => {
+  // Forkdesk never posts stats, see enableStatsReporting.
+  it.skip('posts structured stats to the new endpoint by default', async t => {
     statsDb = await createStatsDb()
     const activityMonitor = new TestActivityMonitor()
     let requestUrl: string | undefined
@@ -396,7 +398,8 @@ describe('StatsStore', () => {
     assert.ok(Buffer.byteLength(requestBody ?? '') < 16 * 1024)
   })
 
-  it('posts structured opt-in pings to the new endpoint', async t => {
+  // Forkdesk never posts stats, see enableStatsReporting.
+  it.skip('posts structured opt-in pings to the new endpoint', async t => {
     statsDb = await createStatsDb()
     const activityMonitor = new TestActivityMonitor()
     let requestBody: string | undefined
@@ -439,5 +442,21 @@ describe('StatsStore', () => {
         previousOptInValue: 'null',
       },
     })
+  })
+
+  it('never posts stats to GitHub by default', async t => {
+    statsDb = await createStatsDb()
+    localStorage.setItem('has-sent-stats-opt-in-ping', '1')
+    const fetchMock = t.mock.method(
+      globalThis,
+      'fetch',
+      async () => new Response(null, { status: 200 })
+    )
+
+    const store = new StatsStore(statsDb, new TestActivityMonitor())
+    await store.increment('commits')
+
+    assert.strictEqual(await store.sendStats([], []), true)
+    assert.strictEqual(fetchMock.mock.callCount(), 0)
   })
 })

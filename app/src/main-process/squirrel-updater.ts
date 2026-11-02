@@ -159,7 +159,7 @@ async function updateShortcut(): Promise<void> {
     const desktopShortcutPath = Path.join(
       homeDirectory,
       'Desktop',
-      'GitHub Desktop.lnk'
+      'Forkdesk.lnk'
     )
     const exists = await pathExists(desktopShortcutPath)
     const locations: ShortcutLocations = exists

@@ -16,6 +16,7 @@ vendor/desktop-trampoline/build/
 .eslintcache
 *.iml
 .envrc
+.forkdesk.env
 junit*.xml
 *.swp
 tslint-rules/

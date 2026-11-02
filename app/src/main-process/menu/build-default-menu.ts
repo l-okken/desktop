@@ -72,10 +72,10 @@ export function buildDefaultMenuTemplate({
 
   if (__DARWIN__) {
     template.push({
-      label: 'GitHub Desktop',
+      label: 'Forkdesk',
       submenu: [
         {
-          label: 'About GitHub Desktop',
+          label: 'About Forkdesk',
           click: emit('show-about'),
           id: 'about',
         },
@@ -542,7 +542,7 @@ export function buildDefaultMenuTemplate({
     label: __DARWIN__ ? 'Report Issue…' : 'Report issue…',
     click() {
       shell
-        .openExternal('https://github.com/desktop/desktop/issues/new/choose')
+        .openExternal('https://github.com/l-okken/desktop/issues/new')
         .catch(err => log.error('Failed opening issue creation page', err))
     },
   }
@@ -616,7 +616,7 @@ export function buildDefaultMenuTemplate({
         ...helpItems,
         separator,
         {
-          label: '&About GitHub Desktop',
+          label: '&About Forkdesk',
           click: emit('show-about'),
           id: 'about',
         },

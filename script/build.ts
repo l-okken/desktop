@@ -244,13 +244,7 @@ async function packageApp() {
     protocols: [
       {
         name: getBundleID(),
-        schemes: [
-          !isDevelopmentBuild
-            ? 'x-github-desktop-auth'
-            : 'x-github-desktop-dev-auth',
-          'x-github-client',
-          'github-mac',
-        ],
+        schemes: ['x-forkdesk-auth', 'x-forkdesk-client'],
       },
     ],
     extendInfo: extendInfoPath,

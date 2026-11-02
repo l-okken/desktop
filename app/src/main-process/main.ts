@@ -105,23 +105,14 @@ function getExtraErrorContext(): Record<string, string> {
 /** Extra argument for the protocol launcher on Windows */
 const protocolLauncherArg = '--protocol-launcher'
 
-const possibleProtocols = new Set(['x-github-client'])
-if (__DEV_SECRETS__) {
-  possibleProtocols.add('x-github-desktop-dev-auth')
-} else {
-  possibleProtocols.add('x-github-desktop-auth')
-}
-// Also support Desktop Classic's protocols.
-if (__DARWIN__) {
-  possibleProtocols.add('github-mac')
-} else if (__WIN32__) {
-  possibleProtocols.add('github-windows')
-}
+// Forkdesk uses its own protocols so it never takes over links or OAuth
+// callbacks meant for the official app.
+const possibleProtocols = new Set(['x-forkdesk-client', 'x-forkdesk-auth'])
 
 // On Windows, in order to get notifications properly working for dev builds,
 // we'll want to set the right App User Model ID from production builds.
 if (__WIN32__ && __DEV__) {
-  app.setAppUserModelId('com.squirrel.GitHubDesktop.GitHubDesktop')
+  app.setAppUserModelId('com.squirrel.Forkdesk.Forkdesk')
 }
 
 app.on('window-all-closed', () => {

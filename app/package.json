@@ -1,8 +1,8 @@
 {
   "name": "desktop",
-  "productName": "GitHub Desktop",
-  "bundleID": "com.github.GitHubClient",
-  "companyName": "GitHub, Inc.",
+  "productName": "Forkdesk",
+  "bundleID": "nl.lokken.forkdesk",
+  "companyName": "Lennart Okken",
   "version": "3.6.10",
   "main": "./main.js",
   "repository": {
