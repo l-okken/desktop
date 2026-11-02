@@ -14,6 +14,8 @@ interface IRepositoryGroupsProps {
     group: Omit<IRepositoryGroup, 'id' | 'accountLogin'>
   ) => void
   readonly onRemoveGroup: (group: IRepositoryGroup) => void
+  /** Called when the user wants to add a new account and SSH key. */
+  readonly onAddSSHAccount: () => void
 }
 
 interface IRepositoryGroupsState {
@@ -64,6 +66,11 @@ export class RepositoryGroups extends React.Component<
         </p>
         {this.props.groups.map(this.renderGroup)}
         {this.renderForm()}
+        <Row>
+          <Button onClick={this.props.onAddSSHAccount}>
+            Add account and SSH key…
+          </Button>
+        </Row>
       </DialogContent>
     )
   }

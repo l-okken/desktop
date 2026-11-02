@@ -177,8 +177,8 @@ describe('OAuth API integration', () => {
         assert.deepStrictEqual(
           url.searchParams.get('scope')?.split(' '),
           shortLived && supportsRefresh
-            ? ['repo', 'user', 'workflow', 'offline_access']
-            : ['repo', 'user', 'workflow']
+            ? ['repo', 'user', 'workflow', 'write:public_key', 'offline_access']
+            : ['repo', 'user', 'workflow', 'write:public_key']
         )
         assert.strictEqual(url.hostname, htmlHost)
       })
@@ -403,6 +403,7 @@ describe('OAuth sign-in integration', { timeout: 10_000 }, () => {
       'repo',
       'user',
       'workflow',
+      'write:public_key',
     ])
   })
 

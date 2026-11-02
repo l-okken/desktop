@@ -87,6 +87,7 @@ export enum PopupType {
   WarningBeforeReset = 'WarningBeforeReset',
   InvalidatedToken = 'InvalidatedToken',
   AddSSHHost = 'AddSSHHost',
+  AddSSHAccount = 'AddSSHAccount',
   SSHKeyPassphrase = 'SSHKeyPassphrase',
   SSHUserPassword = 'SSHUserPassword',
   PullRequestChecksFailed = 'PullRequestChecksFailed',
@@ -203,6 +204,7 @@ export type PopupDetail =
       credentialHelperUrl?: string
     }
   | { type: PopupType.About }
+  | { type: PopupType.AddSSHAccount }
   | { type: PopupType.InstallGit; path: string }
   | { type: PopupType.PublishRepository; repository: Repository }
   | { type: PopupType.Acknowledgements }

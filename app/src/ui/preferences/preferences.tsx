@@ -501,6 +501,11 @@ export class Preferences extends React.Component<
     this.props.dispatcher.removeRepositoryGroup(group)
   }
 
+  private onAddSSHAccount = () => {
+    this.props.onDismissed()
+    this.props.dispatcher.showPopup({ type: PopupType.AddSSHAccount })
+  }
+
   private onDotComSignIn = () => {
     this.props.onDismissed()
     this.props.dispatcher.showDotComSignInDialog()
@@ -569,6 +574,7 @@ export class Preferences extends React.Component<
             groups={this.props.repositoryGroups}
             onAddGroup={this.onAddRepositoryGroup}
             onRemoveGroup={this.onRemoveRepositoryGroup}
+            onAddSSHAccount={this.onAddSSHAccount}
           />
         )
         break

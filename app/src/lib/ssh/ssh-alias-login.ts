@@ -59,6 +59,11 @@ const readSSHGreeting: SSHGreetingReader = async alias => {
 const pendingLookups = new Map<string, Promise<string | null>>()
 const failedLookups = new Map<string, number>()
 
+/** Allow checking an alias again right away, as its key was just added. */
+export function forgetSSHAliasLookupFailure(alias: string) {
+  failedLookups.delete(alias)
+}
+
 /** Forget everything that isn't persisted. Only meant for tests. */
 export function resetSSHAliasLoginState() {
   pendingLookups.clear()

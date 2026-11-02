@@ -1,3 +1,4 @@
+import { AddSSHAccountDialog } from './add-ssh-account/add-ssh-account-dialog'
 import * as React from 'react'
 import * as Path from 'path'
 
@@ -1973,6 +1974,15 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="confirm-delete-copilot-byok-provider"
             provider={popup.provider}
             onConfirm={this.onConfirmDeleteCopilotBYOKProvider}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.AddSSHAccount:
+        return (
+          <AddSSHAccountDialog
+            key="add-ssh-account"
+            dispatcher={this.props.dispatcher}
+            accounts={this.state.accounts}
             onDismissed={onPopupDismissedFn}
           />
         )

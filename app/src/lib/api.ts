@@ -141,7 +141,7 @@ if (!ClientID || !ClientID.length || !ClientSecret || !ClientSecret.length) {
 export type GitHubAccountType = 'User' | 'Organization'
 
 /** The OAuth scopes we want to request */
-const oauthScopes = ['repo', 'user', 'workflow']
+const oauthScopes = ['repo', 'user', 'workflow', 'write:public_key']
 
 /**
  * Information about a repository as returned by the GitHub API.
@@ -1121,6 +1121,14 @@ export class API {
   }
 
   /** Create a new GitHub repository with the given properties. */
+  /** Add a public SSH key to the account. Throws if that doesn't work out. */
+  public async createPublicKey(title: string, key: string): Promise<void> {
+    const response = await this.ghRequest('POST', 'user/keys', {
+      body: { title, key },
+    })
+    await parsedResponse(response)
+  }
+
   public async createRepository(
     org: IAPIOrganization | null,
     name: string,
