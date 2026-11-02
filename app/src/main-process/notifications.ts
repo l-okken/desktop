@@ -28,7 +28,7 @@ export function initializeDesktopNotifications() {
   windowsToastActivatorClsid = findToastActivatorClsid()
 
   if (windowsToastActivatorClsid === undefined) {
-    log.error(
+    log.info(
       'Toast activator CLSID not found in any of the shortcuts. Falling back to known CLSIDs.'
     )
 

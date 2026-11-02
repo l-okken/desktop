@@ -1,5 +1,6 @@
 import * as path from 'path'
 import * as os from 'os'
+import { existsSync } from 'fs'
 import { shell } from 'electron'
 
 /**
@@ -34,6 +35,12 @@ export function findToastActivatorClsid() {
 }
 
 function findToastActivatorClsidInShorcut(shortcutPath: string) {
+  // Development builds aren't installed, and users can remove their shortcuts.
+  // eslint-disable-next-line no-sync
+  if (!existsSync(shortcutPath)) {
+    return undefined
+  }
+
   try {
     const shortcutDetails = shell.readShortcutLink(shortcutPath)
 
