@@ -113,8 +113,6 @@ async function createAuthentication(
               visibility: null,
             },
           ])
-        case '/desktop_internal/features':
-          return Response.json({ features: [] })
         case '/graphql':
           return Response.json({
             data: {
@@ -481,7 +479,7 @@ describe('OAuth sign-in integration', { timeout: 10_000 }, () => {
     assert.strictEqual(await harness.secureStore.getItem(key, login), value)
     assert.ok(value.includes(oauthResponse.refresh_token))
     assert.ok(value.includes(oauthResponse.access_token))
-    assert.strictEqual(harness.fetchMock.mock.callCount(), 5)
+    assert.strictEqual(harness.fetchMock.mock.callCount(), 4)
     assert.deepStrictEqual(harness.revoked, [])
 
     for (const publicState of [
@@ -534,7 +532,7 @@ describe('OAuth sign-in integration', { timeout: 10_000 }, () => {
     await harness.signInStore.resolveOAuthRequest(harness.action)
     assert.strictEqual(harness.authenticated.length, 1)
     assert.strictEqual(harness.results.length, 1)
-    assert.strictEqual(harness.fetchMock.mock.callCount(), 5)
+    assert.strictEqual(harness.fetchMock.mock.callCount(), 4)
   })
 
   it('does not save or authenticate after cancellation during code exchange', async t => {

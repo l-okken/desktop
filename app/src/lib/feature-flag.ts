@@ -142,6 +142,9 @@ export const enableStatsReporting = () => false
 /** Forkdesk does not use GitHub's update server. */
 export const enableAutoUpdates = () => false
 
+/** GitHub's `desktop_internal` endpoints answer Not Found for Forkdesk. */
+export const enableDesktopInternalAPI = () => false
+
 /** Should stats be sent to the new telemetry endpoint? */
 export function enableNewStatsEndpoint(): boolean {
   return true

@@ -28,6 +28,7 @@ import {
 import { HttpStatusCode } from './http-status-code'
 import { CopilotError, parseCopilotPaymentRequiredError } from './copilot-error'
 import { BypassReasonType } from '../ui/secret-scanning/bypass-push-protection-dialog'
+import { enableDesktopInternalAPI } from './feature-flag'
 
 const envEndpoint = process.env['DESKTOP_GITHUB_DOTCOM_API_ENDPOINT']
 const envHTMLURL = process.env['DESKTOP_GITHUB_DOTCOM_HTML_URL']
@@ -2147,6 +2148,10 @@ export class API {
    * @returns An array of strings with the feature flags enabled for the user.
    */
   public async fetchFeatureFlags(): Promise<ReadonlyArray<string> | undefined> {
+    if (!enableDesktopInternalAPI()) {
+      return undefined
+    }
+
     try {
       const response = await this.ghRequest('GET', '/desktop_internal/features')
       const featuresResponse = await parsedResponse<IUserFeaturesResponse>(

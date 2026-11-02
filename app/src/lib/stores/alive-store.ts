@@ -4,6 +4,7 @@ import { API } from '../api'
 import { AliveSession, AliveEvent, Subscription } from '@github/alive-client'
 import { Emitter } from 'event-kit'
 import { supportsAliveSessions } from '../endpoint-capabilities'
+import { enableDesktopInternalAPI } from '../feature-flag'
 
 /** Checks whether or not an account is included in a list of accounts. */
 function accountIncluded(account: Account, accounts: ReadonlyArray<Account>) {
@@ -220,7 +221,10 @@ export class AliveStore {
   }
 
   private subscribeToAccount = async (account: Account) => {
-    if (!supportsAliveSessions(account.endpoint)) {
+    if (
+      !enableDesktopInternalAPI() ||
+      !supportsAliveSessions(account.endpoint)
+    ) {
       return
     }
 
