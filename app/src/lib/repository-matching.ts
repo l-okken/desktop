@@ -7,6 +7,7 @@ import { getHTMLURL } from './api'
 import { parseRemote, parseRepositoryIdentifier } from './remote-parsing'
 import { caseInsensitiveEquals } from './compare'
 import { GitHubRepository } from '../models/github-repository'
+import { resolveRemoteHostname } from './ssh/ssh-config'
 
 export interface IMatchedGitHubRepository {
   /**
@@ -36,7 +37,8 @@ export function matchGitHubRepository(
     const parsedRemote = parseRemote(remote)
 
     if (parsedRemote !== null && hostname !== null) {
-      if (parsedRemote.hostname.toLowerCase() === hostname.toLowerCase()) {
+      const remoteHostname = resolveRemoteHostname(parsedRemote)
+      if (remoteHostname.toLowerCase() === hostname.toLowerCase()) {
         return { name: parsedRemote.name, owner: parsedRemote.owner, account }
       }
     }
@@ -99,7 +101,12 @@ export function urlMatchesRemote(url: string | null, remote: IRemote): boolean {
     return false
   }
 
-  if (!caseInsensitiveEquals(remoteUrl.hostname, cloneUrl.hostname)) {
+  if (
+    !caseInsensitiveEquals(
+      resolveRemoteHostname(remoteUrl),
+      resolveRemoteHostname(cloneUrl)
+    )
+  ) {
     return false
   }
 
@@ -138,10 +145,16 @@ export function urlsMatch(url1: string, url2: string) {
   const firstIdentifier = parseRepositoryIdentifier(url1)
   const secondIdentifier = parseRepositoryIdentifier(url2)
 
+  const hostnameFor = (url: string, hostname: string | null) => {
+    const parsed = parseRemote(url)
+    return parsed !== null ? resolveRemoteHostname(parsed) : hostname
+  }
+
   return (
     firstIdentifier !== null &&
     secondIdentifier !== null &&
-    firstIdentifier.hostname === secondIdentifier.hostname &&
+    hostnameFor(url1, firstIdentifier.hostname) ===
+      hostnameFor(url2, secondIdentifier.hostname) &&
     firstIdentifier.owner === secondIdentifier.owner &&
     firstIdentifier.name === secondIdentifier.name
   )

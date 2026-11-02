@@ -1,13 +1,18 @@
-import { describe, it } from 'node:test'
+import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert'
 import {
   matchGitHubRepository,
   urlMatchesRemote,
   urlMatchesCloneURL,
+  urlsMatch,
 } from '../../src/lib/repository-matching'
 import { Account } from '../../src/models/account'
 import { GitHubRepository } from '../../src/models/github-repository'
 import { gitHubRepoFixture } from '../helpers/github-repo-builder'
+import * as Path from 'path'
+import { mkdtemp, rm, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
+import { loadSSHConfig } from '../../src/lib/ssh/ssh-config'
 
 describe('repository-matching', () => {
   describe('matchGitHubRepository', () => {
@@ -249,6 +254,93 @@ describe('repository-matching', () => {
           repositoryWithoutCloneURL
         ),
         false
+      )
+    })
+  })
+
+  describe('SSH host aliases', () => {
+    let directory: string
+
+    before(async () => {
+      directory = await mkdtemp(Path.join(tmpdir(), 'repository-matching-'))
+      await writeFile(
+        Path.join(directory, 'config'),
+        [
+          'Host github-solatt github.com-roling',
+          '  HostName github.com',
+          'Host gitlab-work',
+          '  HostName gitlab.com',
+        ].join('\n')
+      )
+      await loadSSHConfig(directory)
+    })
+
+    after(async () => {
+      await rm(directory, { recursive: true, force: true })
+      await loadSSHConfig(Path.join(directory, 'missing'))
+    })
+
+    const account = new Account(
+      'alovelace',
+      'https://api.github.com',
+      '',
+      [],
+      '',
+      1,
+      '',
+      'free'
+    )
+
+    it('matches a remote using an alias of the host', () => {
+      for (const remote of [
+        'git@github-solatt:solatt-com/sol-r.git',
+        'git@github.com-roling:solatt-com/sol-r.git',
+        'ssh://git@github-solatt/solatt-com/sol-r.git',
+      ]) {
+        const match = matchGitHubRepository([account], remote)
+        assert.equal(match?.owner, 'solatt-com', remote)
+        assert.equal(match?.name, 'sol-r', remote)
+      }
+    })
+
+    it('does not match an alias of another host', () => {
+      assert.equal(
+        matchGitHubRepository([account], 'git@gitlab-work:owner/repo.git'),
+        null
+      )
+      assert.equal(
+        matchGitHubRepository([account], 'git@unknown-alias:owner/repo.git'),
+        null
+      )
+    })
+
+    it('does not resolve aliases for HTTPS remotes', () => {
+      assert.equal(
+        matchGitHubRepository(
+          [account],
+          'https://github-solatt/owner/repo.git'
+        ),
+        null
+      )
+    })
+
+    it('compares aliases by the host they point to', () => {
+      const remote = {
+        name: 'origin',
+        url: 'git@github-solatt:solatt-com/sol-r.git',
+      }
+      assert(
+        urlMatchesRemote('https://github.com/solatt-com/sol-r.git', remote)
+      )
+      assert(!urlMatchesRemote('https://github.com/other/sol-r.git', remote))
+      assert(
+        !urlMatchesRemote('https://gitlab.com/solatt-com/sol-r.git', remote)
+      )
+      assert(
+        urlsMatch(
+          'git@github-solatt:solatt-com/sol-r.git',
+          'https://github.com/solatt-com/sol-r.git'
+        )
       )
     })
   })

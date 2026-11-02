@@ -1,4 +1,5 @@
 import * as Path from 'path'
+import { loadSSHConfig } from '../ssh/ssh-config'
 import { writeFile } from 'fs/promises'
 import {
   AccountsStore,
@@ -2423,6 +2424,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** Load the initial state for the app. */
   public async loadInitialState() {
+    await loadSSHConfig()
+
     const [accounts, repositories] = await Promise.all([
       this.accountsStore.getAll(),
       this.repositoriesStore.getAll(),
@@ -8141,6 +8144,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     if (this.appIsFocused) {
+      await loadSSHConfig()
       this.repositoryIndicatorUpdater.resume()
       if (this.selectedRepository instanceof Repository) {
         this.startPullRequestUpdater(this.selectedRepository)

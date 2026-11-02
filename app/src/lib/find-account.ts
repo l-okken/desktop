@@ -2,6 +2,7 @@ import * as URL from 'url'
 import { getHTMLURL, API } from './api'
 import { parseRemote, parseRepositoryIdentifier } from './remote-parsing'
 import { Account, isDotComAccount } from '../models/account'
+import { resolveRemoteHostname } from './ssh/ssh-config'
 
 type RepositoryLookupFunc = (
   account: Account,
@@ -58,7 +59,7 @@ export async function findAccountForRemoteURL(
       allAccounts.find(a => {
         const htmlURL = getHTMLURL(a.endpoint)
         const parsedEndpoint = URL.parse(htmlURL)
-        return parsedURL.hostname === parsedEndpoint.hostname
+        return resolveRemoteHostname(parsedURL) === parsedEndpoint.hostname
       }) || null
 
     // If we find an account whose hostname matches the URL to be cloned, it's
@@ -70,7 +71,10 @@ export async function findAccountForRemoteURL(
 
   const repositoryIdentifier = parseRepositoryIdentifier(urlOrRepositoryAlias)
   if (repositoryIdentifier) {
-    const { owner, name, hostname } = repositoryIdentifier
+    const { owner, name } = repositoryIdentifier
+    const hostname = parsedURL
+      ? resolveRemoteHostname(parsedURL)
+      : repositoryIdentifier.hostname
 
     // This chunk of code is designed to sort the user's accounts in this order:
     //  - authenticated GitHub account
