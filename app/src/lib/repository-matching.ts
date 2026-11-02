@@ -7,6 +7,7 @@ import { getHTMLURL } from './api'
 import { parseRemote, parseRepositoryIdentifier } from './remote-parsing'
 import { caseInsensitiveEquals } from './compare'
 import { GitHubRepository } from '../models/github-repository'
+import { getAccountForRepositoryReference } from './repository-accounts'
 import { resolveRemoteHostname } from './ssh/ssh-config'
 
 export interface IMatchedGitHubRepository {
@@ -26,25 +27,45 @@ export interface IMatchedGitHubRepository {
   readonly account: Account
 }
 
-/** Try to use the list of users and a remote URL to guess a GitHub repository. */
+/**
+ * Try to use the list of users and a remote URL to guess a GitHub repository.
+ *
+ * @param login The login of the account which the remote is known to belong to.
+ *              There's no match if that account isn't signed in, as using
+ *              another account's token would be wrong.
+ */
 export function matchGitHubRepository(
   accounts: ReadonlyArray<Account>,
-  remote: string
+  remote: string,
+  login?: string | null
 ): IMatchedGitHubRepository | null {
-  for (const account of accounts) {
-    const htmlURL = getHTMLURL(account.endpoint)
-    const { hostname } = URL.parse(htmlURL)
-    const parsedRemote = parseRemote(remote)
-
-    if (parsedRemote !== null && hostname !== null) {
-      const remoteHostname = resolveRemoteHostname(parsedRemote)
-      if (remoteHostname.toLowerCase() === hostname.toLowerCase()) {
-        return { name: parsedRemote.name, owner: parsedRemote.owner, account }
-      }
-    }
+  const parsedRemote = parseRemote(remote)
+  if (parsedRemote === null) {
+    return null
   }
 
-  return null
+  const remoteHostname = resolveRemoteHostname(parsedRemote).toLowerCase()
+  const candidates = accounts.filter(account => {
+    const { hostname } = URL.parse(getHTMLURL(account.endpoint))
+    return hostname?.toLowerCase() === remoteHostname
+  })
+
+  const first = candidates.at(0)
+  if (first === undefined) {
+    return null
+  }
+
+  const { owner, name } = parsedRemote
+  const account =
+    login !== undefined && login !== null
+      ? candidates.find(a => caseInsensitiveEquals(a.login, login))
+      : getAccountForRepositoryReference(candidates, {
+          endpoint: first.endpoint,
+          owner: { login: owner },
+          name,
+        }) ?? first
+
+  return account !== undefined ? { name, owner, account } : null
 }
 
 /**

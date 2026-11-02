@@ -74,7 +74,7 @@ describe('SignInStore', () => {
       }
     })
 
-    it('transitions to ExistingAccountWarning when a dotcom account exists', async () => {
+    it('adds to the existing accounts when a dotcom account exists', async () => {
       const existingAccount = createDotComAccount()
       accountsStore = createAccountsStore()
       signInStore = new SignInStore(accountsStore)
@@ -84,7 +84,8 @@ describe('SignInStore', () => {
       signInStore.beginDotComSignIn()
       const state = signInStore.getState()
       assert.notEqual(state, null)
-      assert.equal(state?.kind, SignInStep.ExistingAccountWarning)
+      assert.equal(state?.kind, SignInStep.Authentication)
+      assert.equal((await accountsStore.getAll()).length, 1)
     })
 
     it('calls resultCallback when provided', async () => {

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {
   Account,
+  getAccountKey,
   isDotComAccount,
   isEnterpriseAccount,
 } from '../../models/account'
@@ -30,18 +31,31 @@ enum SignInType {
 export class Accounts extends React.Component<IAccountsProps, {}> {
   public render() {
     const { accounts } = this.props
-    const dotComAccount = accounts.find(isDotComAccount)
+    const dotComAccounts = accounts.filter(isDotComAccount)
 
     return (
       <DialogContent className="accounts-tab">
         <h2>GitHub.com</h2>
-        {dotComAccount
-          ? this.renderAccount(dotComAccount, SignInType.DotCom)
-          : this.renderSignIn(SignInType.DotCom)}
+        {this.renderDotComAccounts(dotComAccounts)}
 
         <h2>GitHub Enterprise</h2>
         {this.renderMultipleEnterpriseAccounts()}
       </DialogContent>
+    )
+  }
+
+  private renderDotComAccounts(accounts: ReadonlyArray<Account>) {
+    if (accounts.length === 0) {
+      return this.renderSignIn(SignInType.DotCom)
+    }
+
+    return (
+      <>
+        {accounts.map(account =>
+          this.renderAccount(account, SignInType.DotCom)
+        )}
+        <Button onClick={this.onDotComSignIn}>Add GitHub.com account</Button>
+      </>
     )
   }
 
@@ -78,7 +92,7 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
       type === SignInType.DotCom ? DialogPreferredFocusClassName : undefined
 
     return (
-      <Row className="account-info">
+      <Row className="account-info" key={getAccountKey(account)}>
         <div className="user-info-container">
           <Avatar accounts={this.props.accounts} user={avatarUser} />
           <div className="user-info">

@@ -1,3 +1,4 @@
+import { getAccountForRepositoryReference } from '../../lib/repository-accounts'
 import {
   getNonForkGitHubRepository,
   isRepositoryWithGitHubRepository,
@@ -41,7 +42,8 @@ export function buildAutocompletionProviders(
       )
     )
 
-    const account = accounts.find(a => a.endpoint === gitHubRepository.endpoint)
+    const account =
+      getAccountForRepositoryReference(accounts, gitHubRepository) ?? undefined
 
     autocompletionProviders.push(
       new UserAutocompletionProvider(

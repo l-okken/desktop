@@ -1,3 +1,4 @@
+import { getAccountForRepositoryReference } from '../repository-accounts'
 import { NotificationCallback } from 'desktop-notifications/dist/notification-callback'
 import { Commit, shortenSHA } from '../../models/commit'
 import { GitHubRepository } from '../../models/github-repository'
@@ -510,10 +511,8 @@ export class NotificationsStore {
   }
 
   private async getAccountForRepository(repository: GitHubRepository) {
-    const { endpoint } = repository
-
     const accounts = await this.accountsStore.getAll()
-    return accounts.find(a => a.endpoint === endpoint) ?? null
+    return getAccountForRepositoryReference(accounts, repository)
   }
 
   private async getAPIForRepository(repository: GitHubRepository) {

@@ -1,6 +1,6 @@
 import { Repository } from '../models/repository'
 import { Account } from '../models/account'
-import { getAccountForEndpoint } from './api'
+import { getAccountForRepositoryReference } from './repository-accounts'
 import {
   enableCommitMessageGeneration,
   enableCopilotConflictResolution,
@@ -17,7 +17,7 @@ export function getAccountForRepository(
     return null
   }
 
-  return getAccountForEndpoint(accounts, gitHubRepository.endpoint)
+  return getAccountForRepositoryReference(accounts, gitHubRepository)
 }
 
 /**

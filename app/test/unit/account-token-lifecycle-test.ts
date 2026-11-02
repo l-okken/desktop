@@ -976,7 +976,7 @@ describe('Coordinated account token renewal', () => {
     }
   })
 
-  it('loading duplicate entries for an endpoint keeps only the last session live', async () => {
+  it('loading several accounts for an endpoint keeps all their sessions live', async () => {
     const { data, secure } = setup()
     const other = new Account(
       'other',
@@ -1009,23 +1009,19 @@ describe('Coordinated account token renewal', () => {
       async () => true
     )
 
-    await assert.rejects(
-      store.resolveToken(account.endpoint, account.token),
-      AccountRequiresSignInError
+    assert.equal(
+      await store.resolveToken(account.endpoint, account.token),
+      renewed.accessToken
     )
     assert.equal(
       await store.resolveToken(other.endpoint, other.token),
       other.token
     )
-    assert.equal(renewals, 0)
-    assert.deepEqual(await store.getAll(), [other])
-    assert.deepEqual(await store.removeAccount(other), other)
-    assert.deepEqual(await store.getAll(), [])
+    assert.equal((await store.getAll()).length, 2)
+    assert.equal(renewals, 1)
   })
 
-  it('replacing an account never redirects stale clients to another identity', async () => {
-    const { store } = setup()
-    await store.addAccount(account, rotating)
+  describe('with several accounts on an endpoint', () => {
     const other = new Account(
       'other',
       account.endpoint,
@@ -1035,15 +1031,78 @@ describe('Coordinated account token renewal', () => {
       2,
       'Other'
     )
-    await store.addAccount(other)
-    await assert.rejects(
-      store.resolveToken(account.endpoint, account.token),
-      AccountRequiresSignInError
-    )
-    assert.equal(
-      await store.resolveToken(other.endpoint, other.token),
-      other.token
-    )
+
+    it('adding an account keeps the existing one signed in', async () => {
+      const { store } = setup()
+      await store.addAccount(account, rotating)
+      await store.addAccount(other)
+
+      assert.deepEqual(
+        (await store.getAll()).map(a => a.login).sort(),
+        [account.login, other.login].sort()
+      )
+      assert.equal(
+        await store.resolveToken(account.endpoint, rotating.accessToken),
+        renewed.accessToken
+      )
+      assert.equal(
+        await store.resolveToken(other.endpoint, other.token),
+        other.token
+      )
+    })
+
+    it('signing out one account leaves the other alone', async () => {
+      const { store, secure } = setup()
+      const added = await store.addAccount(account, rotating)
+      await store.addAccount(other)
+      assert.notEqual(added, null)
+
+      await store.removeAccount(added as Account)
+
+      assert.deepEqual(
+        (await store.getAll()).map(a => a.login),
+        [other.login]
+      )
+      assert.equal(
+        await secure.getItem(getKeyForAccount(account), account.login),
+        null
+      )
+      assert.notEqual(
+        await secure.getItem(getKeyForAccount(other), other.login),
+        null
+      )
+      await assert.rejects(
+        store.resolveToken(account.endpoint, account.token),
+        AccountRequiresSignInError
+      )
+      assert.equal(
+        await store.resolveToken(other.endpoint, other.token),
+        other.token
+      )
+    })
+
+    it('a rejected token only signs out the account it belongs to', async () => {
+      const { store } = setup()
+      await store.addAccount(account, rotating)
+      await store.addAccount(other)
+
+      await store.invalidateToken(other.endpoint, other.token)
+
+      assert.deepEqual(
+        (await store.getAll()).map(a => a.login),
+        [account.login]
+      )
+    })
+
+    it('signing in to the same account again replaces it', async () => {
+      const { store } = setup()
+      await store.addAccount(other)
+      await store.addAccount(other.withToken('new-token'))
+
+      const accounts = await store.getAll()
+      assert.equal(accounts.length, 1)
+      assert.equal(accounts[0].token, 'new-token')
+    })
   })
 
   it('reports failures from API invalidation callbacks through the store', async t => {

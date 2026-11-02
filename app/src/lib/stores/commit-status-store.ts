@@ -5,7 +5,8 @@ import { Disposable } from 'event-kit'
 import xor from 'lodash/xor'
 import { Account } from '../../models/account'
 import { GitHubRepository } from '../../models/github-repository'
-import { API, getAccountForEndpoint, IAPICheckSuite } from '../api'
+import { API, IAPICheckSuite } from '../api'
+import { getAccountForRepositoryReference } from '../repository-accounts'
 import {
   apiCheckRunToRefCheck,
   apiStatusToRefCheck,
@@ -274,9 +275,13 @@ export class CommitStatusStore {
     }
 
     const { endpoint, owner, name, ref } = subscription
-    const account = this.accounts.find(a => a.endpoint === endpoint)
+    const account = getAccountForRepositoryReference(this.accounts, {
+      endpoint,
+      owner: { login: owner },
+      name,
+    })
 
-    if (account === undefined) {
+    if (account === null) {
       return
     }
 
@@ -497,8 +502,12 @@ export class CommitStatusStore {
     }
 
     const { endpoint, owner, name } = subscription
-    const account = this.accounts.find(a => a.endpoint === endpoint)
-    if (account === undefined) {
+    const account = getAccountForRepositoryReference(this.accounts, {
+      endpoint,
+      owner: { login: owner },
+      name,
+    })
+    if (account === null) {
       return checkRuns
     }
 
@@ -524,9 +533,13 @@ export class CommitStatusStore {
     }
 
     const { endpoint, owner, name } = subscription
-    const account = this.accounts.find(a => a.endpoint === endpoint)
+    const account = getAccountForRepositoryReference(this.accounts, {
+      endpoint,
+      owner: { login: owner },
+      name,
+    })
 
-    if (account === undefined) {
+    if (account === null) {
       return checkRuns
     }
 
@@ -540,7 +553,7 @@ export class CommitStatusStore {
     checkSuiteId: number
   ): Promise<boolean> {
     const { owner, name } = repository
-    const account = getAccountForEndpoint(this.accounts, repository.endpoint)
+    const account = getAccountForRepositoryReference(this.accounts, repository)
     if (account === null) {
       return false
     }
@@ -554,7 +567,7 @@ export class CommitStatusStore {
     jobId: number
   ): Promise<boolean> {
     const { owner, name } = repository
-    const account = getAccountForEndpoint(this.accounts, repository.endpoint)
+    const account = getAccountForRepositoryReference(this.accounts, repository)
     if (account === null) {
       return false
     }
@@ -568,7 +581,7 @@ export class CommitStatusStore {
     workflowRunId: number
   ): Promise<boolean> {
     const { owner, name } = repository
-    const account = getAccountForEndpoint(this.accounts, repository.endpoint)
+    const account = getAccountForRepositoryReference(this.accounts, repository)
     if (account === null) {
       return false
     }
@@ -582,7 +595,7 @@ export class CommitStatusStore {
     checkSuiteId: number
   ): Promise<IAPICheckSuite | null> {
     const { owner, name } = repository
-    const account = getAccountForEndpoint(this.accounts, repository.endpoint)
+    const account = getAccountForRepositoryReference(this.accounts, repository)
     if (account === null) {
       return null
     }

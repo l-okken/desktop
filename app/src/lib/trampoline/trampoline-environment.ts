@@ -165,7 +165,10 @@ export async function withTrampolineEnv<T>(
         //
         // See https://github.com/desktop/desktop/issues/18945
         // See https://github.com/git/git/blob/ed155187b429a/config.c#L664
-        GIT_CONFIG_PARAMETERS: `${gitEnvConfigPrefix}'credential.helper=' 'credential.helper=desktop'`,
+        //
+        // Asking for the path on GitHub.com lets us tell which of the signed in
+        // accounts a repository belongs to.
+        GIT_CONFIG_PARAMETERS: `${gitEnvConfigPrefix}'credential.helper=' 'credential.helper=desktop' 'credential.https://github.com.useHttpPath=true'`,
 
         GIT_USER_AGENT: await GitUserAgent(),
         ...sshEnv,

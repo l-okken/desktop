@@ -2414,7 +2414,7 @@ export function getOAuthAuthorizationURL(
   )
 
   return new window.URL(
-    `/login/oauth/authorize?client_id=${ClientID}&scope=${scope}&state=${state}`,
+    `/login/oauth/authorize?client_id=${ClientID}&scope=${scope}&state=${state}&prompt=select_account`,
     urlBase
   ).toString()
 }

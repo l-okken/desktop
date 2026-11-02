@@ -4,6 +4,7 @@ import { getGenericPassword, getGenericUsername } from '../generic-git-auth'
 import { AccountsStore } from '../stores'
 import { urlWithoutCredentials } from './url-without-credentials'
 import { Account } from '../../models/account'
+import { getAccountForRepositoryReference } from '../repository-accounts'
 
 /**
  * When we're asked for credentials we're typically first asked for the username
@@ -22,9 +23,36 @@ export async function findGitHubTrampolineAccount(
   remoteUrl: string
 ): Promise<Account | undefined> {
   const accounts = await accountsStore.getAll()
+  return findAccountForCredentialUrl(accounts, remoteUrl)
+}
+
+/**
+ * Find the account for a credential request.
+ *
+ * Git includes the path of the repository when asking for GitHub.com
+ * credentials, see `withTrampolineEnv`, so we can pick the account linked to it.
+ */
+export function findAccountForCredentialUrl(
+  accounts: ReadonlyArray<Account>,
+  remoteUrl: string
+): Account | undefined {
   const parsedUrl = new URL(remoteUrl)
-  return accounts.find(
+  const candidates = accounts.filter(
     a => new URL(getHTMLURL(a.endpoint)).origin === parsedUrl.origin
+  )
+  const first = candidates.at(0)
+  const [owner, name] = parsedUrl.pathname.split('/').filter(x => x.length > 0)
+
+  if (first === undefined || owner === undefined || name === undefined) {
+    return first
+  }
+
+  return (
+    getAccountForRepositoryReference(candidates, {
+      endpoint: first.endpoint,
+      owner: { login: owner },
+      name: name.replace(/\.git$/, ''),
+    }) ?? undefined
   )
 }
 

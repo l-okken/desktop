@@ -1,5 +1,10 @@
 import * as Path from 'path'
-import { loadSSHConfig } from '../ssh/ssh-config'
+import { getRemoteSSHAlias, loadSSHConfig } from '../ssh/ssh-config'
+import { getLoginForSSHAlias } from '../ssh/ssh-alias-login'
+import {
+  getAccountForRepositoryReference,
+  linkRepositoryToAccount,
+} from '../repository-accounts'
 import { writeFile } from 'fs/promises'
 import {
   AccountsStore,
@@ -44,6 +49,7 @@ import type {
 import {
   Account,
   CopilotLicenseTypeNoAccess,
+  accountEquals,
   isDotComAccount,
 } from '../../models/account'
 import { AppMenu, IMenu } from '../../models/app-menu'
@@ -596,6 +602,9 @@ const selectedCopilotModelsByAccountKey = 'selected-copilot-models-by-account'
 export const showChangesFilterDefault = true
 
 export class AppStore extends TypedBaseStore<IAppState> {
+  /** The logins we've already asked the user to sign in to during this session. */
+  private readonly requestedSignInLogins = new Set<string>()
+
   private readonly gitStoreCache: GitStoreCache
 
   private accounts: ReadonlyArray<Account> = new Array<Account>()
@@ -1501,7 +1510,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const branchName = findRemoteBranchName(tip, currentRemote, gitHubRepo)
 
     if (branchName !== null) {
-      const account = getAccountForEndpoint(this.accounts, gitHubRepo.endpoint)
+      const account = getAccountForRepositoryReference(
+        this.accounts,
+        gitHubRepo
+      )
 
       if (account === null) {
         return
@@ -2294,7 +2306,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   public async _refreshIssues(repository: GitHubRepository) {
-    const user = getAccountForEndpoint(this.accounts, repository.endpoint)
+    const user = getAccountForRepositoryReference(this.accounts, repository)
     if (!user) {
       return
     }
@@ -2315,7 +2327,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private refreshMentionables(repository: GitHubRepository) {
-    const account = getAccountForEndpoint(this.accounts, repository.endpoint)
+    const account = getAccountForRepositoryReference(this.accounts, repository)
     if (!account) {
       return
     }
@@ -2345,11 +2357,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public async fetchPullRequest(repoUrl: string, pr: string) {
     const endpoint = getEndpointForRepository(repoUrl)
-    const account = getAccountForEndpoint(this.accounts, endpoint)
+    const remoteUrl = parseRemote(repoUrl)
+    const account =
+      remoteUrl !== null
+        ? getAccountForRepositoryReference(this.accounts, {
+            endpoint,
+            owner: { login: remoteUrl.owner },
+            name: remoteUrl.name,
+          })
+        : getAccountForEndpoint(this.accounts, endpoint)
 
     if (account) {
       const api = API.fromAccount(account)
-      const remoteUrl = parseRemote(repoUrl)
       if (remoteUrl && remoteUrl.owner && remoteUrl.name) {
         return await api.fetchPullRequest(remoteUrl.owner, remoteUrl.name, pr)
       }
@@ -4919,10 +4938,37 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return repository
     }
 
-    const { account, owner, name } = match
-    const { endpoint } = account
-    const api = API.fromAccount(account)
-    const apiRepo = await api.fetchRepository(owner, name)
+    const { owner, name } = match
+    const { endpoint } = match.account
+    const remote = this.gitStoreCache.get(repository).defaultRemote
+    const parsedRemote = remote !== null ? parseRemote(remote.url) : null
+
+    // An SSH alias tells us which account to use. Anything else could belong to
+    // any of the accounts, so we look for the one that has access to it.
+    const candidates =
+      parsedRemote !== null && getRemoteSSHAlias(parsedRemote) !== null
+        ? [match.account]
+        : [
+            match.account,
+            ...this.accounts.filter(
+              a => a.endpoint === endpoint && !accountEquals(a, match.account)
+            ),
+          ]
+
+    let account = match.account
+    let apiRepo: IAPIFullRepository | null = null
+    for (const candidate of candidates) {
+      apiRepo = await API.fromAccount(candidate).fetchRepository(owner, name)
+      if (apiRepo !== null) {
+        account = candidate
+        break
+      }
+    }
+
+    linkRepositoryToAccount(
+      { endpoint, owner: { login: owner }, name },
+      account.login
+    )
 
     if (apiRepo === null) {
       // If the request fails, we want to preserve the existing GitHub
@@ -4942,6 +4988,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const ghRepo = await repoStore.upsertGitHubRepository(endpoint, apiRepo)
+    // Renamed and transferred repositories go by their new name from now on.
+    linkRepositoryToAccount(ghRepo, account.login)
     const freshRepo = await repoStore.setGitHubRepository(repository, ghRepo)
 
     await this.refreshBranchProtectionState(freshRepo)
@@ -4974,9 +5022,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const { owner, name } = repository.gitHubRepository
 
-    const account = getAccountForEndpoint(
+    const account = getAccountForRepositoryReference(
       this.accounts,
-      repository.gitHubRepository.endpoint
+      repository.gitHubRepository
     )
 
     if (account === null) {
@@ -5006,9 +5054,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const remote = gitStore.defaultRemote
-    return remote !== null
-      ? matchGitHubRepository(this.accounts, remote.url)
-      : null
+    if (remote === null) {
+      return null
+    }
+
+    const parsedRemote = parseRemote(remote.url)
+    const alias = parsedRemote !== null ? getRemoteSSHAlias(parsedRemote) : null
+    const login = alias !== null ? await getLoginForSSHAlias(alias) : null
+    const match = matchGitHubRepository(this.accounts, remote.url, login)
+
+    if (match === null && login !== null) {
+      this.requestSignInForLogin(login, alias)
+    }
+
+    return match
+  }
+
+  /** Tell the user once per session about an account a repository needs. */
+  private requestSignInForLogin(login: string, alias: string | null) {
+    if (this.requestedSignInLogins.has(login)) {
+      return
+    }
+
+    this.requestedSignInLogins.add(login)
+    this.emitError(
+      new Error(
+        `The SSH alias "${alias}" belongs to the GitHub account @${login}. Sign in to that account in the Accounts settings to see pull requests and checks for its repositories.`
+      )
+    )
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */

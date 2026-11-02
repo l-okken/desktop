@@ -1,3 +1,4 @@
+import { getAccountForRepositoryReference } from '../repository-accounts'
 import { shortenSHA } from '../../models/commit'
 import { GitHubRepository } from '../../models/github-repository'
 import { PullRequest, getPullRequestCommitRef } from '../../models/pull-request'
@@ -32,10 +33,8 @@ export class NotificationsDebugStore {
   ) {}
 
   private async getAccountForRepository(repository: GitHubRepository) {
-    const { endpoint } = repository
-
     const accounts = await this.accountsStore.getAll()
-    return accounts.find(a => a.endpoint === endpoint) ?? null
+    return getAccountForRepositoryReference(accounts, repository)
   }
 
   private async getAPIForRepository(repository: GitHubRepository) {

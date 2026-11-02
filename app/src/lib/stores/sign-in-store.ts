@@ -1,5 +1,5 @@
 import { Disposable } from 'event-kit'
-import { Account, isDotComAccount } from '../../models/account'
+import { Account, accountEquals } from '../../models/account'
 import { fatalError } from '../fatal-error'
 import {
   validateURL,
@@ -237,26 +237,14 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       this.reset()
     }
 
-    const existingAccount = this.accounts.find(isDotComAccount)
-
-    if (existingAccount) {
-      this.setState({
-        kind: SignInStep.ExistingAccountWarning,
-        endpoint,
-        existingAccount,
-        error: null,
-        loading: false,
-        resultCallback: resultCallback ?? noop,
-      })
-    } else {
-      this.setState({
-        kind: SignInStep.Authentication,
-        endpoint,
-        error: null,
-        loading: false,
-        resultCallback: resultCallback ?? noop,
-      })
-    }
+    // This adds an account, unless that account happens to be signed in already.
+    this.setState({
+      kind: SignInStep.Authentication,
+      endpoint,
+      error: null,
+      loading: false,
+      resultCallback: resultCallback ?? noop,
+    })
   }
 
   /**
@@ -284,7 +272,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       const { existingAccount } = currentState
       // Try to avoid emitting an error out of AccountsStore if the account
       // is already gone.
-      if (this.accounts.find(x => x.endpoint === existingAccount.endpoint)) {
+      if (this.accounts.find(x => accountEquals(x, existingAccount))) {
         await this.accountStore.removeAccount(existingAccount)
       }
     }

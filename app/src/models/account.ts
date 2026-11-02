@@ -14,6 +14,10 @@ export function accountEquals(x: Account, y: Account) {
   return x.endpoint === y.endpoint && x.id === y.id
 }
 
+/** A key which is unique for an account, in line with `accountEquals`. */
+export const getAccountKey = (account: Account) =>
+  `${account.endpoint}|${account.id}`
+
 /**
  * A GitHub account, representing the user found on GitHub The Website or GitHub Enterprise.
  *

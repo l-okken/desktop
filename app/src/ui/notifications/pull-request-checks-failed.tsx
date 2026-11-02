@@ -1,3 +1,4 @@
+import { getAccountForRepositoryReference } from '../../lib/repository-accounts'
 import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Row } from '../lib/row'
@@ -314,11 +315,12 @@ export class PullRequestChecksFailed extends React.Component<
     const { pullRequest, repository } = this.props
     const { gitHubRepository } = repository
 
-    const account = this.props.accounts.find(
-      a => a.endpoint === gitHubRepository.endpoint
+    const account = getAccountForRepositoryReference(
+      this.props.accounts,
+      gitHubRepository
     )
 
-    if (account === undefined) {
+    if (account === null) {
       this.setState({ loadingActionWorkflows: false })
       return
     }

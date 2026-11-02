@@ -4,6 +4,7 @@ import { Dispatcher } from '../dispatcher'
 import { getDefaultDir, setDefaultDir } from '../lib/default-dir'
 import {
   Account,
+  accountEquals,
   isDotComAccount,
   isEnterpriseAccount,
 } from '../../models/account'
@@ -410,7 +411,9 @@ export class CloneRepository extends React.Component<
     const selectedAccount =
       (tabState.selectedAccount
         ? tabAccounts.find(
-            a => a.endpoint === tabState.selectedAccount?.endpoint
+            a =>
+              tabState.selectedAccount !== null &&
+              accountEquals(a, tabState.selectedAccount)
           )
         : undefined) ?? tabAccounts.at(0)
 

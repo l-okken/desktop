@@ -52,7 +52,7 @@ function setup(
     secure,
     {
       requireSignIn: async a => {
-        sessions.retire(a.endpoint)
+        sessions.retire(a)
         signedOut.push(a)
         return a
       },
@@ -89,7 +89,7 @@ describe('CredentialSessions token refresh lifecycle events', () => {
     complete(renewed)
     await tokens
     assert.deepEqual(refreshEvents, ['attempt', 'success'])
-    assert.equal(sessions.trackToken(account.endpoint)(), renewed.accessToken)
+    assert.equal(sessions.trackToken(account)(), renewed.accessToken)
   })
 
   it('does not record token lookups, plain tokens, or still-valid credentials', async () => {
@@ -158,7 +158,7 @@ describe('CredentialSessions token refresh lifecycle events', () => {
       const { sessions, refreshEvents } = setup(() => pending)
       sessions.restore(account, expiring)
       const failure = assert.rejects(sessions.getFreshToken(account))
-      sessions.retire(account.endpoint)
+      sessions.retire(account)
       complete()
       await failure
       assert.deepEqual(refreshEvents, ['attempt', 'abandoned'])
@@ -205,7 +205,7 @@ describe('CredentialSessions token refresh lifecycle events', () => {
     const token = sessions.getFreshToken(account)
     await started
     assert.deepEqual(refreshEvents, ['attempt'])
-    sessions.retire(account.endpoint)
+    sessions.retire(account)
     finish()
     await assert.rejects(token, AccountRequiresSignInError)
     assert.deepEqual(refreshEvents, ['attempt', 'abandoned'])
@@ -454,7 +454,7 @@ describe('CredentialSessions test expiration overrides', () => {
       sessions.getTokenExpirationForTesting(replacement).isOverridden,
       false
     )
-    sessions.retire(account.endpoint)
+    sessions.retire(account)
     assert.throws(
       () => sessions.getTokenExpirationForTesting(replacement),
       AccountRequiresSignInError
@@ -583,10 +583,10 @@ describe('CredentialSessions', () => {
   it('stops tracking a session once it is retired', () => {
     const { sessions } = setup()
     sessions.restore(account, expiring)
-    const token = sessions.trackToken(account.endpoint)
+    const token = sessions.trackToken(account)
 
     assert.equal(token(), account.token)
-    sessions.retire(account.endpoint)
+    sessions.retire(account)
     sessions.restore(account.withToken('other'), { accessToken: 'other' })
     assert.equal(token(), null)
   })
@@ -650,7 +650,7 @@ describe('CredentialSessions', () => {
     const getToken = sessions.createTokenGetter(account, 0)
 
     const getting = getToken()
-    sessions.retire(account.endpoint)
+    sessions.retire(account)
     const replacement = sessions.restore(account, {
       ...renewed,
       accessToken: account.token,
@@ -677,7 +677,7 @@ describe('CredentialSessions', () => {
       expiresAt: renewed.expiresAt,
     })
     assert.equal(sessions.isRefreshable(copied), true)
-    sessions.retire(account.endpoint)
+    sessions.retire(account)
     assert.equal(sessions.isRefreshable(copied), false)
     assert.throws(
       () => sessions.createTokenGetter(copied),
@@ -785,7 +785,7 @@ describe('CredentialSessions', () => {
       await sessions.leaseToken(account, 'git', 0)
 
       const waiting = sessions.getFreshToken(account)
-      sessions.retire(account.endpoint)
+      sessions.retire(account)
       await assert.rejects(waiting, AccountRequiresSignInError)
     })
 
